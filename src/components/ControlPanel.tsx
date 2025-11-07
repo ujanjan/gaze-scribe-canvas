@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, RotateCcw, Download, Activity } from "lucide-react";
+import { Play, Pause, RotateCcw, Download, Trash2 } from "lucide-react";
 
 interface ControlPanelProps {
   isTracking: boolean;
@@ -10,6 +10,7 @@ interface ControlPanelProps {
   onStopTracking: () => void;
   onRecalibrate: () => void;
   onExportData: () => void;
+  onClearHeatmap?: () => void;
 }
 
 const ControlPanel = ({
@@ -20,6 +21,7 @@ const ControlPanel = ({
   onStopTracking,
   onRecalibrate,
   onExportData,
+  onClearHeatmap,
 }: ControlPanelProps) => {
   return (
     <Card className="p-6">
@@ -81,6 +83,17 @@ const ControlPanel = ({
             <Download className="h-4 w-4" />
             Export Data
           </Button>
+
+          {onClearHeatmap && gazePointsCount > 0 && (
+            <Button
+              onClick={onClearHeatmap}
+              variant="outline"
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear Heatmap
+            </Button>
+          )}
         </div>
       </div>
     </Card>

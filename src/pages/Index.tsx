@@ -109,6 +109,13 @@ const Index = () => {
     toast.info("Starting recalibration...");
   };
 
+  const handleClearHeatmap = () => {
+    setGazePoints([]);
+    setIsTracking(false);
+    isTrackingRef.current = false;
+    toast.success("Heatmap cleared - ready for new session");
+  };
+
   const handleExportData = () => {
     if (gazePoints.length === 0) {
       toast.error("No tracking data to export. Please start tracking first.");
@@ -196,6 +203,7 @@ const Index = () => {
             onStopTracking={handleStopTracking}
             onRecalibrate={handleRecalibrate}
             onExportData={handleExportData}
+            onClearHeatmap={handleClearHeatmap}
           />
 
           {/* Text Content with Heatmap Overlay */}
@@ -258,8 +266,8 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Heatmap Overlay */}
-              {isTracking && (
+              {/* Heatmap Overlay - Shows during tracking and persists after stopping */}
+              {gazePoints.length > 0 && (
                 <HeatmapOverlay
                   gazePoints={gazePoints}
                   containerRef={textContainerRef}
