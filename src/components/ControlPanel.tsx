@@ -25,32 +25,7 @@ const ControlPanel = ({
 }: ControlPanelProps) => {
   return (
     <Card className="p-6">
-      <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-        {/* Status */}
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-3 w-3 rounded-full ${
-              isTracking
-                ? "bg-success animate-pulse"
-                : isCalibrated
-                ? "bg-accent"
-                : "bg-muted-foreground"
-            }`}
-          />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {isTracking
-                ? "Tracking Active"
-                : isCalibrated
-                ? "Ready to Track"
-                : "Calibration Required"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {gazePointsCount} gaze points recorded
-            </p>
-          </div>
-        </div>
-
+      <div className="flex flex-col gap-6">
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-3">
           {!isTracking ? (
@@ -94,6 +69,31 @@ const ControlPanel = ({
               Clear Heatmap
             </Button>
           )}
+        </div>
+
+        {/* Status */}
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex h-3 w-3 rounded-full ${
+              isTracking
+                ? "bg-success animate-pulse"
+                : isCalibrated
+                ? "bg-accent"
+                : "bg-muted-foreground"
+            }`}
+          />
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {isTracking
+                ? "Tracking Active"
+                : isCalibrated
+                ? "Ready to Track"
+                : "Calibration Required"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {gazePointsCount} gaze points recorded
+            </p>
+          </div>
         </div>
       </div>
     </Card>
