@@ -26,6 +26,7 @@ const Index = () => {
   const [showCalibration, setShowCalibration] = useState(false);
   const [gazePoints, setGazePoints] = useState<GazeData[]>([]);
   const [webgazerLoaded, setWebgazerLoaded] = useState(false);
+  const [showFaceOverlay, setShowFaceOverlay] = useState(true);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
 
@@ -114,6 +115,15 @@ const Index = () => {
     setIsTracking(false);
     isTrackingRef.current = false;
     toast.success("Heatmap cleared - ready for new session");
+  };
+
+  const handleToggleFaceOverlay = () => {
+    if (window.webgazer) {
+      const newState = !showFaceOverlay;
+      window.webgazer.showVideoPreview(newState);
+      setShowFaceOverlay(newState);
+      toast.info(newState ? "Face overlay shown" : "Face overlay hidden");
+    }
   };
 
   const handleExportData = () => {
@@ -278,6 +288,8 @@ const Index = () => {
               onRecalibrate={handleRecalibrate}
               onExportData={handleExportData}
               onClearHeatmap={handleClearHeatmap}
+              onToggleFaceOverlay={handleToggleFaceOverlay}
+              showFaceOverlay={showFaceOverlay}
             />
 
             {/* Info Card */}

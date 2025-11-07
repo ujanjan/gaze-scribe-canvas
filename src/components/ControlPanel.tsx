@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, RotateCcw, Download, Trash2 } from "lucide-react";
+import { Play, Pause, RotateCcw, Download, Trash2, Eye, EyeOff } from "lucide-react";
 
 interface ControlPanelProps {
   isTracking: boolean;
@@ -11,6 +11,8 @@ interface ControlPanelProps {
   onRecalibrate: () => void;
   onExportData: () => void;
   onClearHeatmap?: () => void;
+  onToggleFaceOverlay?: () => void;
+  showFaceOverlay?: boolean;
 }
 
 const ControlPanel = ({
@@ -22,6 +24,8 @@ const ControlPanel = ({
   onRecalibrate,
   onExportData,
   onClearHeatmap,
+  onToggleFaceOverlay,
+  showFaceOverlay = true,
 }: ControlPanelProps) => {
   return (
     <Card className="p-6">
@@ -67,6 +71,26 @@ const ControlPanel = ({
             >
               <Trash2 className="h-4 w-4" />
               Clear Heatmap
+            </Button>
+          )}
+
+          {onToggleFaceOverlay && (
+            <Button
+              onClick={onToggleFaceOverlay}
+              variant="outline"
+              className="gap-2"
+            >
+              {showFaceOverlay ? (
+                <>
+                  <EyeOff className="h-4 w-4" />
+                  Hide Face Overlay
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  Show Face Overlay
+                </>
+              )}
             </Button>
           )}
         </div>
