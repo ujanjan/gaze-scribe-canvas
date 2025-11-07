@@ -151,8 +151,11 @@ const HeatmapOverlay = ({ gazePoints, containerRef }: HeatmapOverlayProps) => {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none absolute left-0 top-0 h-full w-full"
-      style={{ mixBlendMode: "multiply" }}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      style={{ 
+        mixBlendMode: "multiply",
+        zIndex: 10
+      }}
     />
   );
 };

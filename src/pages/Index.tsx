@@ -27,6 +27,7 @@ const Index = () => {
   const [gazePoints, setGazePoints] = useState<GazeData[]>([]);
   const [webgazerLoaded, setWebgazerLoaded] = useState(false);
   const textContainerRef = useRef<HTMLDivElement>(null);
+  const isTrackingRef = useRef(false);
 
   // Load WebGazer.js
   useEffect(() => {
@@ -43,7 +44,7 @@ const Index = () => {
           .setRegression("ridge")
           .setTracker("TFFacemesh")
           .setGazeListener((data: any, timestamp: number) => {
-            if (data && isTracking) {
+            if (data && isTrackingRef.current) {
               setGazePoints((prev) => [
                 ...prev,
                 { x: data.x, y: data.y, timestamp: Date.now() },
@@ -53,8 +54,8 @@ const Index = () => {
           .saveDataAcrossSessions(true)
           .begin();
         
-        // Hide the video preview by default
-        window.webgazer.showVideoPreview(false);
+        // Show the video preview for better debugging
+        window.webgazer.showVideoPreview(true);
         window.webgazer.showPredictionPoints(true);
       }
     };
@@ -91,16 +92,19 @@ const Index = () => {
       return;
     }
     setIsTracking(true);
-    toast.success("Eye tracking started");
+    isTrackingRef.current = true;
+    toast.success("Eye tracking started - watch the heatmap appear!");
   };
 
   const handleStopTracking = () => {
     setIsTracking(false);
+    isTrackingRef.current = false;
     toast.info("Eye tracking paused");
   };
 
   const handleRecalibrate = () => {
     setIsTracking(false);
+    isTrackingRef.current = false;
     setShowCalibration(true);
     toast.info("Starting recalibration...");
   };
