@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, RotateCcw, Download, Trash2, Eye, EyeOff } from "lucide-react";
+import { Play, Pause, RotateCcw, Download, Trash2, Eye, EyeOff, Sparkles } from "lucide-react";
 
 interface ControlPanelProps {
   isTracking: boolean;
@@ -10,9 +10,11 @@ interface ControlPanelProps {
   onStopTracking: () => void;
   onRecalibrate: () => void;
   onExportData: () => void;
+  onAnalyzeWithAI?: () => void;
   onClearHeatmap?: () => void;
   onToggleFaceOverlay?: () => void;
   showFaceOverlay?: boolean;
+  isAnalyzing?: boolean;
 }
 
 const ControlPanel = ({
@@ -23,9 +25,11 @@ const ControlPanel = ({
   onStopTracking,
   onRecalibrate,
   onExportData,
+  onAnalyzeWithAI,
   onClearHeatmap,
   onToggleFaceOverlay,
   showFaceOverlay = true,
+  isAnalyzing = false,
 }: ControlPanelProps) => {
   return (
     <Card className="p-6">
@@ -62,6 +66,18 @@ const ControlPanel = ({
             <Download className="h-4 w-4" />
             Export Data
           </Button>
+
+          {onAnalyzeWithAI && gazePointsCount > 0 && (
+            <Button
+              onClick={onAnalyzeWithAI}
+              variant="secondary"
+              className="gap-2 w-40"
+              disabled={isAnalyzing}
+            >
+              <Sparkles className="h-4 w-4" />
+              {isAnalyzing ? "Analyzing..." : "Analyze with AI"}
+            </Button>
+          )}
 
           {onClearHeatmap && gazePointsCount > 0 && (
             <Button
