@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import CalibrationModal from "@/components/CalibrationModal";
 import HeatmapOverlay from "@/components/HeatmapOverlay";
 import ControlPanel from "@/components/ControlPanel";
+import AnalysisResults from "@/components/AnalysisResults";
+import geminiService, { AnalysisResult, GazeDataExport } from "@/services/geminiService";
 import { Eye } from "lucide-react";
 
 // Type definitions for WebGazer
@@ -27,7 +29,12 @@ const Index = () => {
   const [gazePoints, setGazePoints] = useState<GazeData[]>([]);
   const [webgazerLoaded, setWebgazerLoaded] = useState(false);
   const [showFaceOverlay, setShowFaceOverlay] = useState(true);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [heatmapImageDataUrl, setHeatmapImageDataUrl] = useState<string>("");
   const textContainerRef = useRef<HTMLDivElement>(null);
+  const heatmapRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
 
   // Load WebGazer.js
@@ -126,22 +133,22 @@ const Index = () => {
     }
   };
 
-  const handleExportData = () => {
-    if (gazePoints.length === 0) {
-      toast.error("No tracking data to export. Please start tracking first.");
-      return;
-    }
-
-    // Calculate heatmap intensity data
+  const getExportData = (): GazeDataExport => {
     const textContainer = textContainerRef.current;
-    if (!textContainer) return;
+    const bounds = textContainer?.getBoundingClientRect() || {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    };
 
-    const bounds = textContainer.getBoundingClientRect();
-    const exportData = {
+    return {
       metadata: {
-        sessionDuration: gazePoints.length > 0 
-          ? gazePoints[gazePoints.length - 1].timestamp - gazePoints[0].timestamp 
-          : 0,
+        sessionDuration:
+          gazePoints.length > 0
+            ? gazePoints[gazePoints.length - 1].timestamp -
+              gazePoints[0].timestamp
+            : 0,
         totalGazePoints: gazePoints.length,
         calibrated: isCalibrated,
         exportTimestamp: new Date().toISOString(),
@@ -153,19 +160,35 @@ const Index = () => {
         },
       },
       rawGazeData: gazePoints,
+    };
+  };
+
+  const handleExportData = () => {
+    if (gazePoints.length === 0) {
+      toast.error("No tracking data to export. Please start tracking first.");
+      return;
+    }
+
+    const exportData = getExportData();
+
+    const dataWithInstructions = {
+      ...exportData,
       instructions: {
         description: "Eye-tracking heatmap data export",
         format: "JSON with raw gaze coordinates and metadata",
         usage: "This data can be analyzed by LLMs to understand reading patterns, attention distribution, and user engagement with the text content.",
         fields: {
-          metadata: "Session information including duration, calibration status, and text container positioning",
-          rawGazeData: "Array of gaze points with x, y coordinates and timestamps in milliseconds",
-          textContainerBounds: "Position and dimensions of the text content area for mapping gaze points to text regions",
+          metadata:
+            "Session information including duration, calibration status, and text container positioning",
+          rawGazeData:
+            "Array of gaze points with x, y coordinates and timestamps in milliseconds",
+          textContainerBounds:
+            "Position and dimensions of the text content area for mapping gaze points to text regions",
         },
       },
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    const blob = new Blob([JSON.stringify(dataWithInstructions, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -178,6 +201,114 @@ const Index = () => {
     URL.revokeObjectURL(url);
 
     toast.success("Data exported successfully!");
+  };
+
+  const captureHeatmapImage = async (): Promise<string> => {
+    if (!textContainerRef.current) {
+      throw new Error("Text container element not found");
+    }
+
+    const textContainer = textContainerRef.current;
+    const rect = textContainer.getBoundingClientRect();
+
+    // Create a canvas that matches the exact display size
+    const resultCanvas = document.createElement("canvas");
+    resultCanvas.width = rect.width;
+    resultCanvas.height = rect.height;
+
+    const ctx = resultCanvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Could not get canvas context");
+    }
+
+    // Draw white background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
+
+    // Get the heatmap canvas (overlay)
+    const heatmapCanvas = textContainer.querySelector("canvas") as HTMLCanvasElement;
+
+    // Render text and heatmap together
+    try {
+      const { default: html2canvas } = await import("html2canvas");
+
+      // First, temporarily hide the heatmap to capture just the text
+      if (heatmapCanvas) {
+        heatmapCanvas.style.display = "none";
+      }
+
+      // Capture the text content
+      const textCanvas = await html2canvas(textContainer, {
+        backgroundColor: "#ffffff",
+        scale: 1, // Use 1:1 scale to match display
+        logging: false,
+        allowTaint: true,
+        useCORS: true,
+      });
+
+      // Draw the captured text onto our result canvas
+      ctx.drawImage(textCanvas, 0, 0);
+
+      // Show the heatmap again and draw it on top
+      if (heatmapCanvas) {
+        heatmapCanvas.style.display = "";
+        ctx.drawImage(heatmapCanvas, 0, 0);
+      }
+
+      return resultCanvas.toDataURL("image/png");
+    } catch (error) {
+      console.error("Failed to capture with html2canvas:", error);
+
+      // Restore heatmap visibility if it was hidden
+      if (heatmapCanvas) {
+        heatmapCanvas.style.display = "";
+      }
+
+      // Fallback: just capture the heatmap directly
+      if (heatmapCanvas) {
+        return heatmapCanvas.toDataURL("image/png");
+      }
+
+      throw new Error("Failed to capture heatmap image");
+    }
+  };
+
+  const handleAnalyzeWithAI = async () => {
+    if (gazePoints.length === 0) {
+      toast.error("No tracking data to analyze. Please start tracking first.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+
+    try {
+      // Capture the heatmap image
+      const heatmapImage = await captureHeatmapImage();
+      setHeatmapImageDataUrl(heatmapImage);
+
+      // Get the readable text from the content area
+      const readableText = textContainerRef.current?.innerText || "";
+
+      // Call Gemini API with gaze data and heatmap image
+      const exportData = getExportData();
+      const result = await geminiService.analyzeGazeData(
+        exportData,
+        heatmapImage,
+        readableText
+      );
+
+      setAnalysisResult(result);
+      toast.success("Analysis complete! Check the results below.");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      console.error("Analysis error:", error);
+      setAnalysisError(errorMessage);
+      toast.error(`Analysis failed: ${errorMessage}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -228,10 +359,12 @@ const Index = () => {
 
                 {/* Heatmap Overlay - Shows during tracking and persists after stopping */}
                 {gazePoints.length > 0 && (
-                  <HeatmapOverlay
-                    gazePoints={gazePoints}
-                    containerRef={textContainerRef}
-                  />
+                  <div ref={heatmapRef}>
+                    <HeatmapOverlay
+                      gazePoints={gazePoints}
+                      containerRef={textContainerRef}
+                    />
+                  </div>
                 )}
               </div>
             </Card>
@@ -248,9 +381,19 @@ const Index = () => {
               onStopTracking={handleStopTracking}
               onRecalibrate={handleRecalibrate}
               onExportData={handleExportData}
+              onAnalyzeWithAI={handleAnalyzeWithAI}
               onClearHeatmap={handleClearHeatmap}
               onToggleFaceOverlay={handleToggleFaceOverlay}
               showFaceOverlay={showFaceOverlay}
+              isAnalyzing={isAnalyzing}
+            />
+
+            {/* Analysis Results Panel */}
+            <AnalysisResults
+              analysisResult={analysisResult}
+              isLoading={isAnalyzing}
+              error={analysisError}
+              heatmapImage={heatmapImageDataUrl}
             />
           </div>
         </div>

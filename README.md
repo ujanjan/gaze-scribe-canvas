@@ -1,15 +1,17 @@
 # Eye-Tracking Heatmap Visualization Tool
 
-A web application for eye-tracking research using WebGazer.js. This tool captures eye movements in real-time and visualizes them as a heatmap overlay on text content.
+A web application for eye-tracking research using WebGazer.js with AI-powered analysis. This tool captures eye movements in real-time, visualizes them as a heatmap overlay on text content, and uses Google's Gemini AI to provide intelligent insights about reading patterns and user engagement.
 
 ## Features
 
 - **WebGazer.js Integration**: Browser-based eye tracking using webcam
 - **Calibration System**: 9-point calibration for improved accuracy
 - **Real-time Heatmap**: Live visualization of attention and focus areas
+- **AI-Powered Analysis**: Gemini API integration for intelligent gaze pattern analysis
 - **Data Export**: Export tracking data in LLM-friendly JSON format
 - **Recalibration**: Ability to recalibrate at any time during the session
 - **Prediction Dot**: Visible cursor showing current gaze position
+- **Analysis Results Panel**: Display heatmap with AI analysis directly in the UI
 
 ## Running Locally
 
@@ -17,6 +19,7 @@ A web application for eye-tracking research using WebGazer.js. This tool capture
 - Node.js (v18 or higher) and npm installed
 - A webcam
 - Modern web browser (Chrome, Firefox, or Edge recommended)
+- Google Gemini API key (optional, for AI analysis features)
 
 ### Installation & Running
 
@@ -31,14 +34,28 @@ cd <project-directory>
 npm install
 ```
 
-3. Start the development server
+3. **(Optional) Set up Gemini API for AI Analysis**
+
+   Get your free API key from [Google AI Studio](https://ai.google.dev)
+
+   Create a `.env.local` file in the project root:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Add your API key to `.env.local`:
+   ```
+   VITE_GEMINI_API_KEY=your_actual_api_key_here
+   ```
+
+4. Start the development server
 ```bash
 npm run dev
 ```
 
-4. Open your browser and navigate to `http://localhost:8080`
+5. Open your browser and navigate to `http://localhost:8080`
 
-5. **Important**: Grant webcam permissions when prompted by your browser
+6. **Important**: Grant webcam permissions when prompted by your browser
 
 ## Deploying Online
 
@@ -53,16 +70,10 @@ This application can be deployed to various free hosting platforms:
 5. Build settings:
    - Build command: `npm run build`
    - Publish directory: `dist`
-6. Click "Deploy site"
-
-### Vercel
-
-1. Push your code to a GitHub repository
-2. Go to [Vercel](https://vercel.com) and sign up/log in
-3. Click "Import Project"
-4. Select your repository
-5. Vercel will auto-detect settings
-6. Click "Deploy"
+6. Add environment variables in Netlify dashboard:
+   - Key: `VITE_GEMINI_API_KEY`
+   - Value: Your Gemini API key (optional, for AI features)
+7. Click "Deploy site"
 
 ### GitHub Pages
 
@@ -79,6 +90,8 @@ This application can be deployed to various free hosting platforms:
    git commit -m "Deploy to GitHub Pages"
    git subtree push --prefix dist origin gh-pages
    ```
+
+Note: GitHub Pages doesn't support environment variables, so AI analysis features won't work unless you use a backend API proxy.
 
 ## How to Use
 
@@ -97,12 +110,22 @@ This application can be deployed to various free hosting platforms:
 ### 3. Control Your Session
 - **Stop Tracking**: Pause the tracking at any time
 - **Recalibrate**: If tracking seems inaccurate, recalibrate
-- **Export Data**: Download your tracking data when finished
+- **Export Data**: Download your tracking data in JSON format
+- **Analyze with AI** ✨: Click this button to get intelligent analysis (requires Gemini API key)
 
-### 4. Export and Analysis
-- Click "Export Data" to download a JSON file
-- The file contains raw gaze coordinates and session metadata
-- This data is structured for easy analysis by LLMs
+### 4. AI Analysis (Optional)
+- After tracking, click the "Analyze with AI" button
+- The system will:
+  - Capture a screenshot of the heatmap overlayed on the text
+  - Send it to Google's Gemini AI along with your gaze data
+  - Analyze and display results directly in the interface
+- View analysis results in the "Analysis Results" panel:
+  - **Heatmap Visualization**: See the captured image with overlay
+  - **Reading Pattern**: How the user read (linear, scanning, focused, etc.)
+  - **Attention Areas**: Which regions received most focus
+  - **Engagement Metrics**: Estimated engagement level
+  - **Recommendations**: Content optimization suggestions
+- Copy individual sections or download the full report
 
 ## Exported Data Format
 
@@ -133,7 +156,7 @@ The exported JSON file contains:
   "instructions": {
     "description": "Eye-tracking heatmap data export",
     "format": "JSON with raw gaze coordinates and metadata",
-    "usage": "This data can be analyzed by LLMs...",
+    "usage": "This data can be analyzed by LLMs to understand reading patterns and engagement...",
     "fields": {
       // Field descriptions
     }
@@ -148,7 +171,36 @@ The exported JSON file contains:
 - **metadata.textContainerBounds**: Position and size of the text area on screen
 - **rawGazeData**: Array of all gaze points with x/y coordinates (in pixels) and timestamps
 
-### Analyzing with LLMs
+## AI Analysis with Gemini
+
+When you click "Analyze with AI", the tool sends:
+
+1. **Heatmap Image**: A PNG capture of your text with the gaze heatmap overlay
+2. **Gaze Coordinates**: Raw JSON data with exact gaze positions and timing
+3. **Text Content**: The original text being analyzed for context
+
+Gemini then provides analysis on:
+
+- **Reading Patterns**: Whether you read linearly, scanned content, or focused on specific areas
+- **Attention Distribution**: Which sections got the most focus
+- **Engagement Level**: Estimated engagement based on fixation patterns
+- **Content Insights**: What the reading behavior reveals about comprehension and interest
+- **Recommendations**: Suggestions for improving content layout or presentation
+
+### Requirements for AI Analysis
+
+- Valid Google Gemini API key (free tier available)
+- Internet connection
+- Modern browser
+
+### Privacy Notes for AI Analysis
+
+- The heatmap image and gaze data are sent directly to Google's Gemini API
+- No data is stored on external servers by this application
+- Review Google's privacy policy for Gemini API data handling
+- All processing is request-based with no persistent storage
+
+## Analyzing with LLMs
 
 The exported data can be used to:
 - Identify which text sections received most attention
@@ -199,6 +251,19 @@ The heatmap uses a standard color scheme:
 - Ensure your face is clearly visible to the webcam
 - Close other applications using the webcam
 
+**"Analyze with AI" button not working:**
+- Ensure `VITE_GEMINI_API_KEY` is set in `.env.local`
+- Verify your API key is valid at [Google AI Studio](https://ai.google.dev)
+- Check your API quota/usage
+- Open browser console (F12) for detailed error messages
+- Ensure you have internet connection
+
+**"Invalid response from Gemini API" error:**
+- Your API key may be invalid or expired
+- You may have reached your API quota
+- Try again after a few moments
+- Check the browser console for response details
+
 **Page won't load:**
 - Make sure you granted webcam permissions
 - Try refreshing the page
@@ -213,15 +278,20 @@ The heatmap uses a standard color scheme:
 
 - **Framework**: React + TypeScript + Vite
 - **Eye Tracking**: WebGazer.js (TFFacemesh tracker, Ridge regression)
+- **AI Analysis**: Google Gemini 2.0 Flash API
+- **Image Processing**: html2canvas for DOM-to-canvas conversion
 - **UI Components**: shadcn/ui with Tailwind CSS
 - **Heatmap**: Custom canvas-based implementation
+- **State Management**: React Hooks + local state
 
 ## Privacy & Data
 
 - All eye tracking happens locally in your browser
-- No data is sent to external servers
+- No gaze data is sent to external servers (unless you use AI analysis)
+- When using AI Analysis: heatmap image and gaze data are sent to Google's Gemini API
 - WebGazer.js may store calibration data in browser localStorage
 - Exported data is saved only to your local machine
+- Review [Google's privacy policy](https://policies.google.com/privacy) for AI analysis data handling
 
 ## Browser Compatibility
 
@@ -241,7 +311,28 @@ For issues or questions:
 1. Check the troubleshooting section above
 2. Review WebGazer.js documentation
 3. Check browser console for error messages
+4. For AI analysis issues, see the "Analyze with AI" troubleshooting section
 
 ---
 
-Built with [Lovable](https://lovable.dev) | Powered by [WebGazer.js](https://webgazer.cs.brown.edu/)
+## Version History
+
+### v1.1.0 - AI Analysis Release (init-gemini branch)
+- ✨ Added Google Gemini API integration for intelligent gaze analysis
+- 📊 New "Analyze with AI" feature with inline results panel
+- 🖼️ Heatmap visualization in analysis results
+- 📝 AI-generated insights on reading patterns and engagement
+- 📥 Download analysis reports
+- ✂️ Copy individual analysis sections
+- 🎯 Improved image capture with proper overlay alignment
+
+### v1.0.0 - Initial Release
+- Basic eye tracking with WebGazer.js
+- Real-time heatmap visualization
+- Calibration system
+- JSON data export
+- Web-based UI with Tailwind CSS
+
+---
+
+Built with [Lovable](https://lovable.dev) | Powered by [WebGazer.js](https://webgazer.cs.brown.edu/) | AI by [Google Gemini](https://ai.google.dev)
