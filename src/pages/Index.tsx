@@ -26,6 +26,7 @@ const Index = () => {
   const [showCalibration, setShowCalibration] = useState(false);
   const [gazePoints, setGazePoints] = useState<GazeData[]>([]);
   const [webgazerLoaded, setWebgazerLoaded] = useState(false);
+  const [showFaceOverlay, setShowFaceOverlay] = useState(true);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
 
@@ -116,6 +117,15 @@ const Index = () => {
     toast.success("Heatmap cleared - ready for new session");
   };
 
+  const handleToggleFaceOverlay = () => {
+    if (window.webgazer) {
+      const newState = !showFaceOverlay;
+      window.webgazer.showVideoPreview(newState);
+      setShowFaceOverlay(newState);
+      toast.info(newState ? "Face overlay shown" : "Face overlay hidden");
+    }
+  };
+
   const handleExportData = () => {
     if (gazePoints.length === 0) {
       toast.error("No tracking data to export. Please start tracking first.");
@@ -193,90 +203,62 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
-        <div className="mx-auto max-w-7xl space-y-8">
-          {/* Control Panel */}
-          <ControlPanel
-            isTracking={isTracking}
-            isCalibrated={isCalibrated}
-            gazePointsCount={gazePoints.length}
-            onStartTracking={handleStartTracking}
-            onStopTracking={handleStopTracking}
-            onRecalibrate={handleRecalibrate}
-            onExportData={handleExportData}
-            onClearHeatmap={handleClearHeatmap}
-          />
+        <div className="flex gap-8">
+          {/* Left Column - 70% - Text Content */}
+          <div className="w-[70%]">
+            <Card className="relative overflow-hidden bg-card p-8">
+              <div className="w-full" ref={textContainerRef}>
+                <h2 className="mb-6 text-3xl font-bold text-foreground">
+                  The History of KTH Royal Institute of Technology
+                </h2>
 
-          {/* Text Content with Heatmap Overlay */}
-          <Card className="relative overflow-hidden bg-card p-8">
-            <div className="mx-auto w-full max-w-2xl" ref={textContainerRef}>
-              <h2 className="mb-6 text-3xl font-bold text-foreground">
-                The History of KTH Royal Institute of Technology
-              </h2>
+                <div className="space-y-6 text-lg leading-relaxed text-foreground">
+                  <p>
+                    KTH Royal Institute of Technology, founded in 1827 as the Technological Institute, is Sweden's largest and oldest technical university. Established to meet the growing demand for skilled engineers during Sweden's industrial revolution, the institution received royal status in 1877, becoming Kungliga Tekniska Högskolan. Throughout its nearly two-century history, KTH has remained at the forefront of technical education and innovation in Scandinavia.
+                  </p>
 
-              <div className="space-y-6 text-lg leading-relaxed text-foreground">
-                <p>
-                  KTH Royal Institute of Technology, founded in 1827, stands as Sweden's
-                  largest and oldest technical university. Originally established as the
-                  Technological Institute (Teknologiska Institutet), it was created to
-                  meet the growing need for skilled engineers during Sweden's industrial
-                  revolution. The institution received its royal status in 1877, becoming
-                  Kungliga Tekniska Högskolan, which translates to "Royal Institute of
-                  Technology" in English. Throughout its nearly two-century history, KTH
-                  has been at the forefront of technical education and innovation in
-                  Scandinavia.
-                </p>
+                  <p>
+                    Located in Stockholm, KTH's campus combines historic architecture with modern facilities across multiple locations. Today, the university educates approximately 13,000 undergraduate and 1,700 postgraduate students with a staff of around 3,500. KTH offers comprehensive programs in engineering, natural sciences, architecture, industrial management, and urban planning, while maintaining strong partnerships with leading universities worldwide and close collaboration with Swedish and international industries—a defining characteristic that ensures research and education remain relevant to real-world challenges.
+                  </p>
 
-                <p>
-                  Located in the heart of Stockholm, KTH's main campus occupies a
-                  magnificent site that combines historic architecture with modern
-                  facilities. The campus has expanded significantly over the years, now
-                  encompassing multiple locations across Stockholm. Today, KTH educates
-                  approximately 13,000 undergraduate and 1,700 postgraduate students,
-                  employing around 3,500 staff members. The university offers programs
-                  spanning a wide range of disciplines including engineering, natural
-                  sciences, architecture, industrial management, and urban planning,
-                  making it a comprehensive institution for technical and scientific
-                  education.
-                </p>
+                  <p>
+                    In recent decades, KTH has embraced digital transformation and sustainability as core themes, launching initiatives focused on climate change, renewable energy, and sustainable development. The university continues to evolve and adapt its programs to meet the demands of a rapidly changing technological landscape while maintaining its commitment to excellence. As Sweden and the world face complex challenges in digitalization, urbanization, and environmental sustainability, KTH remains dedicated to developing the knowledge and solutions needed for a better future.
+                  </p>
+                </div>
 
-                <p>
-                  KTH has produced numerous notable alumni who have made significant
-                  contributions to science, technology, and industry. The university's
-                  research output is substantial, with KTH researchers publishing
-                  extensively in prestigious international journals. The institution has
-                  established strong partnerships with leading universities worldwide and
-                  maintains close collaboration with Swedish and international industries.
-                  This connection between academia and industry has been a defining
-                  characteristic of KTH throughout its history, ensuring that research
-                  and education remain relevant to real-world challenges and
-                  opportunities.
-                </p>
-
-                <p>
-                  In recent decades, KTH has embraced digital transformation and
-                  sustainability as core themes in its research and education. The
-                  university has launched several initiatives focused on climate change,
-                  renewable energy, and sustainable development. KTH continues to evolve,
-                  adapting its programs to meet the demands of a rapidly changing
-                  technological landscape while maintaining its commitment to excellence
-                  in education and research. As Sweden and the world face complex
-                  challenges in areas such as digitalization, urbanization, and
-                  environmental sustainability, KTH remains dedicated to developing the
-                  knowledge and solutions needed for a better future.
-                </p>
+                {/* Heatmap Overlay - Shows during tracking and persists after stopping */}
+                {gazePoints.length > 0 && (
+                  <HeatmapOverlay
+                    gazePoints={gazePoints}
+                    containerRef={textContainerRef}
+                  />
+                )}
               </div>
+            </Card>
+          </div>
 
-              {/* Heatmap Overlay - Shows during tracking and persists after stopping */}
-              {gazePoints.length > 0 && (
-                <HeatmapOverlay
-                  gazePoints={gazePoints}
-                  containerRef={textContainerRef}
-                />
-              )}
-            </div>
-          </Card>
+          {/* Right Column - 30% - Action Buttons and Controls */}
+          <div className="w-[30%] space-y-6">
+            {/* Control Panel */}
+            <ControlPanel
+              isTracking={isTracking}
+              isCalibrated={isCalibrated}
+              gazePointsCount={gazePoints.length}
+              onStartTracking={handleStartTracking}
+              onStopTracking={handleStopTracking}
+              onRecalibrate={handleRecalibrate}
+              onExportData={handleExportData}
+              onClearHeatmap={handleClearHeatmap}
+              onToggleFaceOverlay={handleToggleFaceOverlay}
+              showFaceOverlay={showFaceOverlay}
+            />
+          </div>
+        </div>
+      </main>
 
-          {/* Info Card */}
+      {/* Footer */}
+      <footer className="border-t border-border bg-card py-8">
+        <div className="container mx-auto px-6">
           <Card className="bg-muted p-6">
             <h3 className="mb-3 text-lg font-semibold text-foreground">
               How to Use This Tool
@@ -302,7 +284,7 @@ const Index = () => {
             </ol>
           </Card>
         </div>
-      </main>
+      </footer>
 
       {/* Calibration Modal */}
       {showCalibration && (
