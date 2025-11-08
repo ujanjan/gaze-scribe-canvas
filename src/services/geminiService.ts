@@ -34,7 +34,7 @@ export interface AnalysisResult {
 
 class GeminiService {
   private apiKey: string;
-  private apiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+  private apiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
   constructor() {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
@@ -135,11 +135,23 @@ Format your response clearly with these sections separated by line breaks.`;
 
       const data = await response.json();
 
-      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+      console.log("Gemini API Response:", data);
+
+      // Handle different response structures
+      let analysisText: string | null = null;
+
+      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+        analysisText = data.candidates[0].content.parts[0].text;
+      } else if (typeof data === "string") {
+        analysisText = data;
+      } else {
+        console.error("Unexpected Gemini API response structure:", data);
         throw new Error("Invalid response from Gemini API");
       }
 
-      const analysisText = data.candidates[0].content.parts[0].text;
+      if (!analysisText) {
+        throw new Error("No analysis text in Gemini API response");
+      }
 
       // Parse the response into structured sections
       return this.parseAnalysisResponse(analysisText);

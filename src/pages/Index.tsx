@@ -208,64 +208,68 @@ const Index = () => {
       throw new Error("Text container element not found");
     }
 
+    const textContainer = textContainerRef.current;
+    const rect = textContainer.getBoundingClientRect();
+
+    // Create a canvas that matches the exact display size
+    const resultCanvas = document.createElement("canvas");
+    resultCanvas.width = rect.width;
+    resultCanvas.height = rect.height;
+
+    const ctx = resultCanvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Could not get canvas context");
+    }
+
+    // Draw white background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
+
+    // Get the heatmap canvas (overlay)
+    const heatmapCanvas = textContainer.querySelector("canvas") as HTMLCanvasElement;
+
+    // Render text and heatmap together
     try {
       const { default: html2canvas } = await import("html2canvas");
-      
-      // Capture the entire text container with the heatmap overlay
-      // This includes both the text content and the heatmap canvas on top
-      const canvas = await html2canvas(textContainerRef.current, {
+
+      // First, temporarily hide the heatmap to capture just the text
+      if (heatmapCanvas) {
+        heatmapCanvas.style.display = "none";
+      }
+
+      // Capture the text content
+      const textCanvas = await html2canvas(textContainer, {
         backgroundColor: "#ffffff",
-        scale: 2,
+        scale: 1, // Use 1:1 scale to match display
         logging: false,
         allowTaint: true,
         useCORS: true,
       });
-      
-      return canvas.toDataURL("image/png");
-    } catch (error) {
-      console.error("Failed to capture heatmap with html2canvas:", error);
-      
-      // Fallback: manually composite the heatmap canvas on top of text
-      const rect = textContainerRef.current.getBoundingClientRect();
-      const resultCanvas = document.createElement("canvas");
-      resultCanvas.width = rect.width * 2; // 2x scale for quality
-      resultCanvas.height = rect.height * 2;
-      
-      const ctx = resultCanvas.getContext("2d");
-      if (!ctx) {
-        throw new Error("Could not get canvas context");
-      }
 
-      // Draw white background
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
+      // Draw the captured text onto our result canvas
+      ctx.drawImage(textCanvas, 0, 0);
 
-      // Draw text content as text (simple fallback)
-      ctx.fillStyle = "#000000";
-      ctx.font = "16px Arial";
-      const textContent = textContainerRef.current.innerText;
-      const lines = textContent.split("\n");
-      let y = 30;
-      lines.forEach((line) => {
-        ctx.fillText(line, 20, y);
-        y += 25;
-      });
-
-      // Try to overlay the heatmap canvas if available
-      const heatmapCanvas = textContainerRef.current.querySelector("canvas") as HTMLCanvasElement;
+      // Show the heatmap again and draw it on top
       if (heatmapCanvas) {
-        // Create a temporary canvas to scale the heatmap
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = resultCanvas.width;
-        tempCanvas.height = resultCanvas.height;
-        const tempCtx = tempCanvas.getContext("2d");
-        if (tempCtx) {
-          tempCtx.drawImage(heatmapCanvas, 0, 0, resultCanvas.width, resultCanvas.height);
-          ctx.drawImage(tempCanvas, 0, 0);
-        }
+        heatmapCanvas.style.display = "";
+        ctx.drawImage(heatmapCanvas, 0, 0);
       }
 
       return resultCanvas.toDataURL("image/png");
+    } catch (error) {
+      console.error("Failed to capture with html2canvas:", error);
+
+      // Restore heatmap visibility if it was hidden
+      if (heatmapCanvas) {
+        heatmapCanvas.style.display = "";
+      }
+
+      // Fallback: just capture the heatmap directly
+      if (heatmapCanvas) {
+        return heatmapCanvas.toDataURL("image/png");
+      }
+
+      throw new Error("Failed to capture heatmap image");
     }
   };
 
