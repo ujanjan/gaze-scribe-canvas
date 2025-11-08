@@ -36,19 +36,19 @@ const ControlPanel = ({
             <Button
               onClick={onStartTracking}
               disabled={!isCalibrated}
-              className="gap-2"
+              className="gap-2 w-40"
             >
               <Play className="h-4 w-4" />
               Start Tracking
             </Button>
           ) : (
-            <Button onClick={onStopTracking} variant="secondary" className="gap-2">
+            <Button onClick={onStopTracking} variant="secondary" className="gap-2 w-40">
               <Pause className="h-4 w-4" />
               Stop Tracking
             </Button>
           )}
 
-          <Button onClick={onRecalibrate} variant="outline" className="gap-2">
+          <Button onClick={onRecalibrate} variant="outline" className="gap-2 w-40">
             <RotateCcw className="h-4 w-4" />
             Recalibrate
           </Button>
@@ -56,7 +56,7 @@ const ControlPanel = ({
           <Button
             onClick={onExportData}
             variant="outline"
-            className="gap-2"
+            className="gap-2 w-40"
             disabled={gazePointsCount === 0}
           >
             <Download className="h-4 w-4" />
@@ -67,7 +67,7 @@ const ControlPanel = ({
             <Button
               onClick={onClearHeatmap}
               variant="outline"
-              className="gap-2"
+              className="gap-2 w-40"
             >
               <Trash2 className="h-4 w-4" />
               Clear Heatmap
@@ -78,7 +78,7 @@ const ControlPanel = ({
             <Button
               onClick={onToggleFaceOverlay}
               variant="outline"
-              className="gap-2"
+              className="gap-2 w-40"
             >
               {showFaceOverlay ? (
                 <>
