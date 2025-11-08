@@ -252,35 +252,39 @@ const Index = () => {
               onToggleFaceOverlay={handleToggleFaceOverlay}
               showFaceOverlay={showFaceOverlay}
             />
-
-            {/* Info Card */}
-            <Card className="bg-muted p-6">
-              <h3 className="mb-3 text-lg font-semibold text-foreground">
-                How to Use This Tool
-              </h3>
-              <ol className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <strong>1. Calibration:</strong> Complete the initial calibration by
-                  clicking on the points displayed on screen. This helps improve tracking
-                  accuracy.
-                </li>
-                <li>
-                  <strong>2. Start Tracking:</strong> Click "Start Tracking" to begin
-                  recording eye movements and generating the heatmap.
-                </li>
-                <li>
-                  <strong>3. Read the Text:</strong> Read through the text naturally. The
-                  heatmap will update in real-time showing where your attention is focused.
-                </li>
-                <li>
-                  <strong>4. Export Data:</strong> When finished, click "Export Data" to
-                  download your tracking data for analysis.
-                </li>
-              </ol>
-            </Card>
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-card py-8">
+        <div className="container mx-auto px-6">
+          <Card className="bg-muted p-6">
+            <h3 className="mb-3 text-lg font-semibold text-foreground">
+              How to Use This Tool
+            </h3>
+            <ol className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong>1. Calibration:</strong> Complete the initial calibration by
+                clicking on the points displayed on screen. This helps improve tracking
+                accuracy.
+              </li>
+              <li>
+                <strong>2. Start Tracking:</strong> Click "Start Tracking" to begin
+                recording eye movements and generating the heatmap.
+              </li>
+              <li>
+                <strong>3. Read the Text:</strong> Read through the text naturally. The
+                heatmap will update in real-time showing where your attention is focused.
+              </li>
+              <li>
+                <strong>4. Export Data:</strong> When finished, click "Export Data" to
+                download your tracking data for analysis.
+              </li>
+            </ol>
+          </Card>
+        </div>
+      </footer>
 
       {/* Calibration Modal */}
       {showCalibration && (
