@@ -61,7 +61,29 @@ npm run dev
 
 This application can be deployed to various free hosting platforms:
 
-### Netlify (Recommended)
+### Cloudflare Pages (Recommended)
+
+1. Push your code to a GitHub, GitLab, or Bitbucket repository
+2. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) and sign up/log in
+3. Navigate to **Pages** → **Create a project**
+4. Connect your Git repository
+5. Configure build settings:
+   - **Framework preset**: Vite (or select "None" and configure manually)
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - **Root directory**: `/` (leave as default)
+   - **Node.js version**: 18 or higher
+6. Add environment variables (optional, for AI features):
+   - Go to **Settings** → **Environment variables**
+   - Add variable:
+     - **Variable name**: `VITE_GEMINI_API_KEY`
+     - **Value**: Your Gemini API key
+   - Apply to **Production**, **Preview**, and **Branch** environments as needed
+7. Click **Save and Deploy**
+
+**Note**: The `_redirects` file in the `public` directory ensures proper SPA routing on Cloudflare Pages.
+
+### Netlify
 
 1. Push your code to a GitHub repository
 2. Go to [Netlify](https://netlify.com) and sign up/log in
