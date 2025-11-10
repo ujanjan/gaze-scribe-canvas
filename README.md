@@ -73,6 +73,7 @@ This application can be deployed to various free hosting platforms:
    - **Build output directory**: `dist`
    - **Root directory**: `/` (leave as default)
    - **Node.js version**: 18 or higher
+   - **Package manager**: npm (Cloudflare will auto-detect from `package-lock.json`)
 6. Add environment variables (optional, for AI features):
    - Go to **Settings** → **Environment variables**
    - Add variable:

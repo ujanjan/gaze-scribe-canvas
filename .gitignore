@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Package manager lockfiles (using npm for Cloudflare Pages)
+bun.lockb
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
