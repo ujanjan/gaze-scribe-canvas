@@ -1,17 +1,16 @@
-# Eye-Tracking Heatmap Visualization Tool
+# Eye-Tracking Analysis Tool
 
-A web application for eye-tracking research using WebGazer.js with AI-powered analysis. This tool captures eye movements in real-time, visualizes them as a heatmap overlay on text content, and uses Google's Gemini AI to provide intelligent insights about reading patterns and user engagement.
+A web application for eye-tracking research using WebGazer.js with AI-powered analysis. This tool captures eye movements in real-time and uses Google's Gemini AI to provide intelligent insights about reading patterns and user engagement.
 
 ## Features
 
 - **WebGazer.js Integration**: Browser-based eye tracking using webcam
 - **Calibration System**: 9-point calibration for improved accuracy
-- **Real-time Heatmap**: Live visualization of attention and focus areas
 - **AI-Powered Analysis**: Gemini API integration for intelligent gaze pattern analysis
 - **Data Export**: Export tracking data in LLM-friendly JSON format
 - **Recalibration**: Ability to recalibrate at any time during the session
 - **Prediction Dot**: Visible cursor showing current gaze position
-- **Analysis Results Panel**: Display heatmap with AI analysis directly in the UI
+- **Analysis Results Panel**: Display AI analysis directly in the UI
 
 ## Running Locally
 
@@ -127,7 +126,7 @@ Note: GitHub Pages doesn't support environment variables, so AI analysis feature
 ### 2. Start Tracking
 - After calibration, click the "Start Tracking" button
 - Begin reading the text naturally
-- The heatmap will update in real-time showing where you're looking
+- Your gaze movements will be tracked and recorded
 - You'll see a dot following your gaze
 
 ### 3. Control Your Session
@@ -139,13 +138,12 @@ Note: GitHub Pages doesn't support environment variables, so AI analysis feature
 ### 4. AI Analysis (Optional)
 - After tracking, click the "Analyze with AI" button
 - The system will:
-  - Capture a screenshot of the heatmap overlayed on the text
-  - Send it to Google's Gemini AI along with your gaze data
-  - Analyze and display results directly in the interface
+  - Send your gaze coordinate data to Google's Gemini AI
+  - Analyze the reading patterns based on coordinate data
+  - Display results directly in the interface
 - View analysis results in the "Analysis Results" panel:
-  - **Heatmap Visualization**: See the captured image with overlay
   - **Reading Pattern**: How the user read (linear, scanning, focused, etc.)
-  - **Attention Areas**: Which regions received most focus
+  - **Attention Areas**: Which regions received most focus based on gaze point density
   - **Engagement Metrics**: Estimated engagement level
   - **Recommendations**: Content optimization suggestions
 - Copy individual sections or download the full report
@@ -198,9 +196,8 @@ The exported JSON file contains:
 
 When you click "Analyze with AI", the tool sends:
 
-1. **Heatmap Image**: A PNG capture of your text with the gaze heatmap overlay
-2. **Gaze Coordinates**: Raw JSON data with exact gaze positions and timing
-3. **Text Content**: The original text being analyzed for context
+1. **Gaze Coordinates**: Raw JSON data with exact gaze positions and timing
+2. **Text Content**: The original text being analyzed for context
 
 Gemini then provides analysis on:
 
@@ -218,7 +215,7 @@ Gemini then provides analysis on:
 
 ### Privacy Notes for AI Analysis
 
-- The heatmap image and gaze data are sent directly to Google's Gemini API
+- The gaze coordinate data is sent directly to Google's Gemini API
 - No data is stored on external servers by this application
 - Review Google's privacy policy for Gemini API data handling
 - All processing is request-based with no persistent storage
@@ -240,22 +237,6 @@ Analyze this eye-tracking data and identify:
 3. Overall reading pattern (linear vs. scattered)
 4. Engagement level based on fixation duration
 ```
-
-## Interpreting the Heatmap
-
-The heatmap uses a standard color scheme:
-
-- 🔵 **Blue**: Low attention/few fixations
-- 🟢 **Green**: Moderate attention
-- 🟡 **Yellow**: High attention
-- 🟠 **Orange**: Very high attention
-- 🔴 **Red**: Maximum attention/most fixations
-
-**What to look for:**
-- Red/orange zones indicate areas where the reader spent most time
-- Blue zones indicate areas that were skipped or glanced at quickly
-- Scattered hotspots may indicate confusion or difficulty
-- Linear patterns suggest smooth reading flow
 
 ## Tips for Best Results
 
@@ -292,7 +273,7 @@ The heatmap uses a standard color scheme:
 - Try refreshing the page
 - Check browser console for errors
 
-**Heatmap not appearing:**
+**Tracking not working:**
 - Ensure you've clicked "Start Tracking"
 - Complete calibration first
 - Check that gaze points are being recorded (shown in control panel)
@@ -302,16 +283,14 @@ The heatmap uses a standard color scheme:
 - **Framework**: React + TypeScript + Vite
 - **Eye Tracking**: WebGazer.js (TFFacemesh tracker, Ridge regression)
 - **AI Analysis**: Google Gemini 2.0 Flash API
-- **Image Processing**: html2canvas for DOM-to-canvas conversion
 - **UI Components**: shadcn/ui with Tailwind CSS
-- **Heatmap**: Custom canvas-based implementation
 - **State Management**: React Hooks + local state
 
 ## Privacy & Data
 
 - All eye tracking happens locally in your browser
 - No gaze data is sent to external servers (unless you use AI analysis)
-- When using AI Analysis: heatmap image and gaze data are sent to Google's Gemini API
+- When using AI Analysis: gaze coordinate data is sent to Google's Gemini API
 - WebGazer.js may store calibration data in browser localStorage
 - Exported data is saved only to your local machine
 - Review [Google's privacy policy](https://policies.google.com/privacy) for AI analysis data handling
@@ -343,15 +322,12 @@ For issues or questions:
 ### v1.1.0 - AI Analysis Release (init-gemini branch)
 - ✨ Added Google Gemini API integration for intelligent gaze analysis
 - 📊 New "Analyze with AI" feature with inline results panel
-- 🖼️ Heatmap visualization in analysis results
 - 📝 AI-generated insights on reading patterns and engagement
 - 📥 Download analysis reports
 - ✂️ Copy individual analysis sections
-- 🎯 Improved image capture with proper overlay alignment
 
 ### v1.0.0 - Initial Release
 - Basic eye tracking with WebGazer.js
-- Real-time heatmap visualization
 - Calibration system
 - JSON data export
 - Web-based UI with Tailwind CSS

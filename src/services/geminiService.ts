@@ -1,5 +1,5 @@
 /**
- * Gemini API Service for analyzing gaze tracking data and heatmap images
+ * Gemini API Service for analyzing gaze tracking data
  * Requires VITE_GEMINI_API_KEY environment variable
  */
 
@@ -46,19 +46,10 @@ class GeminiService {
   }
 
   /**
-   * Extracts base64 data from a data URL
-   */
-  private extractBase64(dataUrl: string): string {
-    const parts = dataUrl.split(",");
-    return parts.length > 1 ? parts[1] : dataUrl;
-  }
-
-  /**
-   * Analyzes gaze data and heatmap image using Gemini API
+   * Analyzes gaze data using Gemini API
    */
   async analyzeGazeData(
     gazeDataExport: GazeDataExport,
-    heatmapImageDataUrl: string,
     readableText?: string
   ): Promise<AnalysisResult> {
     if (!this.apiKey) {
@@ -67,15 +58,12 @@ class GeminiService {
       );
     }
 
-    const base64Image = this.extractBase64(heatmapImageDataUrl);
-
     // Create a detailed prompt for analysis
     const analysisPrompt = `You are an expert in eye-tracking analysis and user behavior research. 
 
 I am providing you with:
-1. A heatmap image showing the focus areas of a user's gaze during reading
-2. JSON data containing raw gaze coordinates and timing information
-3. The text content the user was reading (if provided)
+1. JSON data containing raw gaze coordinates and timing information
+2. The text content the user was reading (if provided)
 
 GAZE DATA SUMMARY:
 - Total gaze points collected: ${gazeDataExport.metadata.totalGazePoints}
@@ -84,13 +72,16 @@ GAZE DATA SUMMARY:
 
 ${readableText ? `TEXT CONTENT:\n${readableText}\n\n` : ""}
 
-Please analyze the heatmap image and provide a comprehensive analysis in the following sections:
+RAW GAZE DATA (first 50 points for reference):
+${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 50), null, 2)}
 
-1. **Reading Pattern**: Describe the user's reading pattern (left-to-right, top-to-bottom, scanning, focused, etc.)
-2. **Attention Areas**: Identify which areas or regions received the most attention (top, middle, bottom, left, right, specific sections)
-3. **Engagement Metrics**: Estimate the user's engagement level based on the gaze distribution
-4. **Key Insights**: What can you infer about comprehension, interest, or potential challenges?
-5. **Recommendations**: Suggestions for content improvement or layout optimization based on the gaze pattern
+Please analyze the gaze data and provide a comprehensive analysis in the following sections:
+
+1. **Reading Pattern**: Describe the user's reading pattern based on the coordinate data (left-to-right, top-to-bottom, scanning, focused, etc.). Consider the sequence and density of gaze points.
+2. **Attention Areas**: Identify which areas or regions received the most attention based on gaze point density and distribution (top, middle, bottom, left, right, specific sections). Calculate which regions have the highest concentration of gaze points.
+3. **Engagement Metrics**: Estimate the user's engagement level based on the gaze distribution, point density, and reading speed (calculated from timestamps).
+4. **Key Insights**: What can you infer about comprehension, interest, or potential challenges based on the gaze pattern data?
+5. **Recommendations**: Suggestions for content improvement or layout optimization based on the gaze pattern analysis
 
 Format your response clearly with these sections separated by line breaks.`;
 
@@ -101,12 +92,6 @@ Format your response clearly with these sections separated by line breaks.`;
             parts: [
               {
                 text: analysisPrompt,
-              },
-              {
-                inlineData: {
-                  mimeType: "image/png",
-                  data: base64Image,
-                },
               },
             ],
           },
