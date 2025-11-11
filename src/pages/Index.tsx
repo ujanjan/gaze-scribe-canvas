@@ -78,10 +78,22 @@ const Index = () => {
 
   useEffect(() => {
     if (webgazerLoaded && !isCalibrated) {
-      // Show calibration modal after a brief delay
-      setTimeout(() => {
-        setShowCalibration(true);
-      }, 1000);
+      // Check WebGazer readiness before showing calibration modal
+      const checkReadiness = () => {
+        if (
+          window.webgazer &&
+          typeof window.webgazer.recordScreenPosition === "function"
+        ) {
+          // Show calibration modal after a brief delay
+          setTimeout(() => {
+            setShowCalibration(true);
+          }, 1000);
+        } else {
+          // Retry after a short delay if not ready yet
+          setTimeout(checkReadiness, 500);
+        }
+      };
+      checkReadiness();
     }
   }, [webgazerLoaded, isCalibrated]);
 
