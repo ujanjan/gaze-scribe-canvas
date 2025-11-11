@@ -108,3 +108,29 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* WebGazer prediction dot styling - make it bigger */
+.webgazer-prediction-dot,
+[id*="webgazer"],
+[class*="webgazer"],
+div[id^="webgazer"],
+div[class*="webgazer"] {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+}
+
+/* Target WebGazer prediction point - typically a red dot with inline styles */
+div[style*="position: absolute"]:has([style*="background"]),
+div[style*="position: absolute"][style*="background-color: rgb(255, 0, 0)"],
+div[style*="position: absolute"][style*="background-color:red"],
+div[style*="position: absolute"][style*="background: rgb(255, 0, 0)"],
+div[style*="position: absolute"][style*="background:red"] {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+}

@@ -76,6 +76,65 @@ const Index = () => {
     };
   }, []);
 
+  // Resize WebGazer prediction dot to make it bigger
+  useEffect(() => {
+    if (!webgazerLoaded) return;
+
+    const resizePredictionDot = () => {
+      // Find all elements that might be WebGazer prediction dots
+      // WebGazer typically creates divs with inline styles for prediction points
+      const allDivs = document.querySelectorAll('div[style*="position: absolute"]');
+      allDivs.forEach((div) => {
+        const style = window.getComputedStyle(div);
+        const bgColor = style.backgroundColor;
+        const width = parseInt(style.width);
+        const height = parseInt(style.height);
+        
+        // Check if it's a small red dot (WebGazer's prediction point)
+        if (
+          (bgColor === 'rgb(255, 0, 0)' || bgColor === 'red') &&
+          width <= 10 &&
+          height <= 10 &&
+          style.position === 'absolute' &&
+          style.borderRadius === '50%'
+        ) {
+          div.style.width = '20px';
+          div.style.height = '20px';
+          div.style.minWidth = '20px';
+          div.style.minHeight = '20px';
+        }
+      });
+    };
+
+    // Use MutationObserver to watch for dynamically created prediction dots
+    const observer = new MutationObserver((mutations) => {
+      // Only check if new nodes were added
+      const hasNewNodes = mutations.some(mutation => mutation.addedNodes.length > 0);
+      if (hasNewNodes) {
+        resizePredictionDot();
+      }
+    });
+
+    // Start observing the document body for changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style'],
+    });
+
+    // Also resize immediately in case the dot already exists
+    resizePredictionDot();
+    
+    // Periodically check and resize (as a fallback)
+    const interval = setInterval(resizePredictionDot, 1000);
+
+    return () => {
+      observer.disconnect();
+      clearInterval(interval);
+    };
+  }, [webgazerLoaded]);
+
   useEffect(() => {
     if (webgazerLoaded && !isCalibrated) {
       // Check WebGazer readiness before showing calibration modal
