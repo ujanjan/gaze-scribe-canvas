@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import CalibrationModal from "@/components/CalibrationModal";
-import HeatmapOverlay from "@/components/HeatmapOverlay";
 import ControlPanel from "@/components/ControlPanel";
 import AnalysisResults from "@/components/AnalysisResults";
 import geminiService, { AnalysisResult, GazeDataExport } from "@/services/geminiService";
@@ -32,9 +31,7 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [heatmapImageDataUrl, setHeatmapImageDataUrl] = useState<string>("");
   const textContainerRef = useRef<HTMLDivElement>(null);
-  const heatmapRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
 
   // Load WebGazer.js
@@ -101,7 +98,7 @@ const Index = () => {
     }
     setIsTracking(true);
     isTrackingRef.current = true;
-    toast.success("Eye tracking started - watch the heatmap appear!");
+    toast.success("Eye tracking started!");
   };
 
   const handleStopTracking = () => {
@@ -115,13 +112,6 @@ const Index = () => {
     isTrackingRef.current = false;
     setShowCalibration(true);
     toast.info("Starting recalibration...");
-  };
-
-  const handleClearHeatmap = () => {
-    setGazePoints([]);
-    setIsTracking(false);
-    isTrackingRef.current = false;
-    toast.success("Heatmap cleared - ready for new session");
   };
 
   const handleToggleFaceOverlay = () => {
@@ -174,7 +164,7 @@ const Index = () => {
     const dataWithInstructions = {
       ...exportData,
       instructions: {
-        description: "Eye-tracking heatmap data export",
+        description: "Eye-tracking data export",
         format: "JSON with raw gaze coordinates and metadata",
         usage: "This data can be analyzed by LLMs to understand reading patterns, attention distribution, and user engagement with the text content.",
         fields: {
@@ -203,76 +193,6 @@ const Index = () => {
     toast.success("Data exported successfully!");
   };
 
-  const captureHeatmapImage = async (): Promise<string> => {
-    if (!textContainerRef.current) {
-      throw new Error("Text container element not found");
-    }
-
-    const textContainer = textContainerRef.current;
-    const rect = textContainer.getBoundingClientRect();
-
-    // Create a canvas that matches the exact display size
-    const resultCanvas = document.createElement("canvas");
-    resultCanvas.width = rect.width;
-    resultCanvas.height = rect.height;
-
-    const ctx = resultCanvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("Could not get canvas context");
-    }
-
-    // Draw white background
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
-
-    // Get the heatmap canvas (overlay)
-    const heatmapCanvas = textContainer.querySelector("canvas") as HTMLCanvasElement;
-
-    // Render text and heatmap together
-    try {
-      const { default: html2canvas } = await import("html2canvas");
-
-      // First, temporarily hide the heatmap to capture just the text
-      if (heatmapCanvas) {
-        heatmapCanvas.style.display = "none";
-      }
-
-      // Capture the text content
-      const textCanvas = await html2canvas(textContainer, {
-        backgroundColor: "#ffffff",
-        scale: 1, // Use 1:1 scale to match display
-        logging: false,
-        allowTaint: true,
-        useCORS: true,
-      });
-
-      // Draw the captured text onto our result canvas
-      ctx.drawImage(textCanvas, 0, 0);
-
-      // Show the heatmap again and draw it on top
-      if (heatmapCanvas) {
-        heatmapCanvas.style.display = "";
-        ctx.drawImage(heatmapCanvas, 0, 0);
-      }
-
-      return resultCanvas.toDataURL("image/png");
-    } catch (error) {
-      console.error("Failed to capture with html2canvas:", error);
-
-      // Restore heatmap visibility if it was hidden
-      if (heatmapCanvas) {
-        heatmapCanvas.style.display = "";
-      }
-
-      // Fallback: just capture the heatmap directly
-      if (heatmapCanvas) {
-        return heatmapCanvas.toDataURL("image/png");
-      }
-
-      throw new Error("Failed to capture heatmap image");
-    }
-  };
-
   const handleAnalyzeWithAI = async () => {
     if (gazePoints.length === 0) {
       toast.error("No tracking data to analyze. Please start tracking first.");
@@ -283,18 +203,13 @@ const Index = () => {
     setAnalysisError(null);
 
     try {
-      // Capture the heatmap image
-      const heatmapImage = await captureHeatmapImage();
-      setHeatmapImageDataUrl(heatmapImage);
-
       // Get the readable text from the content area
       const readableText = textContainerRef.current?.innerText || "";
 
-      // Call Gemini API with gaze data and heatmap image
+      // Call Gemini API with gaze data
       const exportData = getExportData();
       const result = await geminiService.analyzeGazeData(
         exportData,
-        heatmapImage,
         readableText
       );
 
@@ -322,7 +237,7 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                Eye-Tracking Heatmap Visualization
+                Eye-Tracking Analysis Tool
               </h1>
               <p className="text-sm text-muted-foreground">
                 WebGazer.js Research Tool
@@ -356,16 +271,6 @@ const Index = () => {
                     In recent decades, KTH has embraced digital transformation and sustainability as core themes, launching initiatives focused on climate change, renewable energy, and sustainable development. The university continues to evolve and adapt its programs to meet the demands of a rapidly changing technological landscape while maintaining its commitment to excellence. As Sweden and the world face complex challenges in digitalization, urbanization, and environmental sustainability, KTH remains dedicated to developing the knowledge and solutions needed for a better future.
                   </p>
                 </div>
-
-                {/* Heatmap Overlay - Shows during tracking and persists after stopping */}
-                {gazePoints.length > 0 && (
-                  <div ref={heatmapRef}>
-                    <HeatmapOverlay
-                      gazePoints={gazePoints}
-                      containerRef={textContainerRef}
-                    />
-                  </div>
-                )}
               </div>
             </Card>
           </div>
@@ -382,7 +287,6 @@ const Index = () => {
               onRecalibrate={handleRecalibrate}
               onExportData={handleExportData}
               onAnalyzeWithAI={handleAnalyzeWithAI}
-              onClearHeatmap={handleClearHeatmap}
               onToggleFaceOverlay={handleToggleFaceOverlay}
               showFaceOverlay={showFaceOverlay}
               isAnalyzing={isAnalyzing}
@@ -393,7 +297,6 @@ const Index = () => {
               analysisResult={analysisResult}
               isLoading={isAnalyzing}
               error={analysisError}
-              heatmapImage={heatmapImageDataUrl}
             />
           </div>
         </div>
@@ -414,11 +317,11 @@ const Index = () => {
               </li>
               <li>
                 <strong>2. Start Tracking:</strong> Click "Start Tracking" to begin
-                recording eye movements and generating the heatmap.
+                recording eye movements.
               </li>
               <li>
-                <strong>3. Read the Text:</strong> Read through the text naturally. The
-                heatmap will update in real-time showing where your attention is focused.
+                <strong>3. Read the Text:</strong> Read through the text naturally while
+                your eye movements are being tracked.
               </li>
               <li>
                 <strong>4. Export Data:</strong> When finished, click "Export Data" to

@@ -17,7 +17,6 @@ interface AnalysisModalProps {
   analysisResult: AnalysisResult | null;
   isLoading: boolean;
   error: string | null;
-  heatmapImage?: string;
 }
 
 const AnalysisModal = ({
@@ -26,7 +25,6 @@ const AnalysisModal = ({
   analysisResult,
   isLoading,
   error,
-  heatmapImage,
 }: AnalysisModalProps) => {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
@@ -77,7 +75,7 @@ ${analysisResult.rawAnalysis || "No data"}
         <DialogHeader>
           <DialogTitle>Gaze Pattern Analysis</DialogTitle>
           <DialogDescription>
-            AI-powered analysis of your eye-tracking heatmap and reading pattern
+            AI-powered analysis of your eye-tracking data and reading pattern
           </DialogDescription>
         </DialogHeader>
 
@@ -101,20 +99,6 @@ ${analysisResult.rawAnalysis || "No data"}
 
         {analysisResult && !isLoading && (
           <div className="space-y-6">
-            {/* Heatmap Preview */}
-            {heatmapImage && (
-              <Card className="overflow-hidden bg-muted p-4">
-                <p className="mb-3 text-sm font-semibold text-foreground">
-                  Heatmap Visualization
-                </p>
-                <img
-                  src={heatmapImage}
-                  alt="Gaze heatmap"
-                  className="max-h-64 w-full rounded object-contain"
-                />
-              </Card>
-            )}
-
             {/* Analysis Sections */}
             {analysisResult.readingPattern && (
               <AnalysisSection

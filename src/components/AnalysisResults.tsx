@@ -8,14 +8,12 @@ interface AnalysisResultsProps {
   analysisResult: AnalysisResult | null;
   isLoading: boolean;
   error: string | null;
-  heatmapImage?: string;
 }
 
 const AnalysisResults = ({
   analysisResult,
   isLoading,
   error,
-  heatmapImage,
 }: AnalysisResultsProps) => {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
@@ -88,18 +86,6 @@ ${analysisResult.rawAnalysis || "No data"}
 
       {analysisResult && !isLoading && (
         <div className="space-y-4">
-          {/* Heatmap Image */}
-          {heatmapImage && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Heatmap</p>
-              <img
-                src={heatmapImage}
-                alt="Gaze heatmap"
-                className="w-full rounded border border-border"
-              />
-            </div>
-          )}
-
           {/* Reading Pattern */}
           {analysisResult.readingPattern && (
             <AnalysisSection
