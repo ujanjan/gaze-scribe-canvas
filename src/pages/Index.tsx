@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -34,6 +34,10 @@ const Index = () => {
   const textContainerRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
 
+  // Performance optimization: Use ref to batch gaze points
+  const gazePointsBufferRef = useRef<GazeData[]>([]);
+  const batchIntervalRef = useRef<number | null>(null);
+
   // Load WebGazer.js
   useEffect(() => {
     const script = document.createElement("script");
@@ -43,25 +47,27 @@ const Index = () => {
       console.log("WebGazer loaded successfully");
       setWebgazerLoaded(true);
       
-      // Initialize WebGazer
+      // Initialize WebGazer with performance optimizations
       if (window.webgazer) {
         window.webgazer
           .setRegression("ridge")
           .setTracker("TFFacemesh")
           .setGazeListener((data: any, timestamp: number) => {
+            // Performance fix: Store in buffer instead of triggering state updates
             if (data && isTrackingRef.current) {
-              setGazePoints((prev) => [
-                ...prev,
-                { x: data.x, y: data.y, timestamp: Date.now() },
-              ]);
+              gazePointsBufferRef.current.push({
+                x: data.x,
+                y: data.y,
+                timestamp: Date.now(),
+              });
             }
           })
-          .saveDataAcrossSessions(true)
+          .saveDataAcrossSessions(false) // Performance: Disable session persistence
           .begin();
-        
-        // Show the video preview for better debugging
-        window.webgazer.showVideoPreview(true);
-        window.webgazer.showPredictionPoints(true);
+
+        // Performance: Keep overlays hidden by default, only show for calibration
+        window.webgazer.showVideoPreview(false);
+        window.webgazer.showPredictionPoints(false);
       }
     };
     script.onerror = () => {
@@ -72,6 +78,32 @@ const Index = () => {
     return () => {
       if (window.webgazer) {
         window.webgazer.end();
+      }
+      // Clean up batch interval
+      if (batchIntervalRef.current !== null) {
+        clearInterval(batchIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Performance optimization: Batch update gaze points every 100ms instead of real-time
+  useEffect(() => {
+    const flushGazePoints = () => {
+      if (gazePointsBufferRef.current.length > 0) {
+        const pointsToAdd = [...gazePointsBufferRef.current];
+        gazePointsBufferRef.current = [];
+        setGazePoints((prev) => [...prev, ...pointsToAdd]);
+      }
+    };
+
+    // Update UI with batched points every 100ms
+    batchIntervalRef.current = window.setInterval(flushGazePoints, 100);
+
+    return () => {
+      if (batchIntervalRef.current !== null) {
+        clearInterval(batchIntervalRef.current);
+        // Flush any remaining points
+        flushGazePoints();
       }
     };
   }, []);
@@ -85,43 +117,58 @@ const Index = () => {
     }
   }, [webgazerLoaded, isCalibrated]);
 
-  const handleCalibrationComplete = () => {
+  const handleCalibrationComplete = useCallback(() => {
     setIsCalibrated(true);
     setShowCalibration(false);
     toast.success("Calibration complete! You can now start tracking.");
-  };
+  }, []);
 
-  const handleStartTracking = () => {
+  const handleStartTracking = useCallback(() => {
     if (!isCalibrated) {
       toast.error("Please complete calibration first.");
       return;
     }
     setIsTracking(true);
     isTrackingRef.current = true;
-    toast.success("Eye tracking started!");
-  };
 
-  const handleStopTracking = () => {
+    // Performance: Hide overlays during tracking to reduce rendering overhead
+    if (window.webgazer && showFaceOverlay) {
+      window.webgazer.showVideoPreview(false);
+      window.webgazer.showPredictionPoints(false);
+    }
+
+    toast.success("Eye tracking started!");
+  }, [isCalibrated, showFaceOverlay]);
+
+  const handleStopTracking = useCallback(() => {
     setIsTracking(false);
     isTrackingRef.current = false;
-    toast.info("Eye tracking paused");
-  };
 
-  const handleRecalibrate = () => {
+    // Restore overlay visibility if it was enabled
+    if (window.webgazer && showFaceOverlay) {
+      window.webgazer.showVideoPreview(true);
+      window.webgazer.showPredictionPoints(true);
+    }
+
+    toast.info("Eye tracking paused");
+  }, [showFaceOverlay]);
+
+  const handleRecalibrate = useCallback(() => {
     setIsTracking(false);
     isTrackingRef.current = false;
     setShowCalibration(true);
     toast.info("Starting recalibration...");
-  };
+  }, []);
 
-  const handleToggleFaceOverlay = () => {
+  const handleToggleFaceOverlay = useCallback(() => {
     if (window.webgazer) {
       const newState = !showFaceOverlay;
       window.webgazer.showVideoPreview(newState);
+      window.webgazer.showPredictionPoints(newState);
       setShowFaceOverlay(newState);
       toast.info(newState ? "Face overlay shown" : "Face overlay hidden");
     }
-  };
+  }, [showFaceOverlay]);
 
   const getExportData = (): GazeDataExport => {
     const textContainer = textContainerRef.current;
@@ -153,7 +200,7 @@ const Index = () => {
     };
   };
 
-  const handleExportData = () => {
+  const handleExportData = useCallback(() => {
     if (gazePoints.length === 0) {
       toast.error("No tracking data to export. Please start tracking first.");
       return;
@@ -191,9 +238,9 @@ const Index = () => {
     URL.revokeObjectURL(url);
 
     toast.success("Data exported successfully!");
-  };
+  }, [gazePoints.length]);
 
-  const handleAnalyzeWithAI = async () => {
+  const handleAnalyzeWithAI = useCallback(async () => {
     if (gazePoints.length === 0) {
       toast.error("No tracking data to analyze. Please start tracking first.");
       return;
@@ -224,7 +271,7 @@ const Index = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [gazePoints.length]);
 
   return (
     <div className="min-h-screen bg-background">
