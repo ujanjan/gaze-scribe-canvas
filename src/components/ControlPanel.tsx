@@ -118,7 +118,9 @@ const ControlPanel = ({
                 : "Calibration Required"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {gazePointsCount} gaze points recorded
+              {isTracking
+                ? "Recording gaze points..."
+                : `${gazePointsCount} gaze points recorded`}
             </p>
           </div>
         </div>

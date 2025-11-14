@@ -33,6 +33,9 @@ const Index = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
+  // Store gaze points in a ref to avoid expensive state updates on every gaze detection
+  // State is only updated when tracking stops for final display
+  const gazePointsRef = useRef<GazeData[]>([]);
 
   // Load WebGazer.js
   useEffect(() => {
@@ -50,10 +53,12 @@ const Index = () => {
           .setTracker("TFFacemesh")
           .setGazeListener((data: any, timestamp: number) => {
             if (data && isTrackingRef.current) {
-              setGazePoints((prev) => [
-                ...prev,
-                { x: data.x, y: data.y, timestamp: Date.now() },
-              ]);
+              // Push to ref array (O(1) operation) instead of state update
+              gazePointsRef.current.push({
+                x: data.x,
+                y: data.y,
+                timestamp: Date.now(),
+              });
             }
           })
           .saveDataAcrossSessions(true)
@@ -104,12 +109,17 @@ const Index = () => {
   const handleStopTracking = () => {
     setIsTracking(false);
     isTrackingRef.current = false;
-    toast.info("Eye tracking paused");
+    // Sync ref to state only when stopping (for final count display)
+    setGazePoints([...gazePointsRef.current]);
+    toast.info(`Eye tracking paused. ${gazePointsRef.current.length} points recorded.`);
   };
 
   const handleRecalibrate = () => {
     setIsTracking(false);
     isTrackingRef.current = false;
+    // Clear gaze points when recalibrating
+    gazePointsRef.current = [];
+    setGazePoints([]);
     setShowCalibration(true);
     toast.info("Starting recalibration...");
   };
@@ -132,14 +142,17 @@ const Index = () => {
       height: 0,
     };
 
+    // Use ref data for export (always up-to-date)
+    const points = gazePointsRef.current;
+
     return {
       metadata: {
         sessionDuration:
-          gazePoints.length > 0
-            ? gazePoints[gazePoints.length - 1].timestamp -
-              gazePoints[0].timestamp
+          points.length > 0
+            ? points[points.length - 1].timestamp -
+              points[0].timestamp
             : 0,
-        totalGazePoints: gazePoints.length,
+        totalGazePoints: points.length,
         calibrated: isCalibrated,
         exportTimestamp: new Date().toISOString(),
         textContainerBounds: {
@@ -149,12 +162,12 @@ const Index = () => {
           height: bounds.height,
         },
       },
-      rawGazeData: gazePoints,
+      rawGazeData: points,
     };
   };
 
   const handleExportData = () => {
-    if (gazePoints.length === 0) {
+    if (gazePointsRef.current.length === 0) {
       toast.error("No tracking data to export. Please start tracking first.");
       return;
     }
@@ -194,7 +207,7 @@ const Index = () => {
   };
 
   const handleAnalyzeWithAI = async () => {
-    if (gazePoints.length === 0) {
+    if (gazePointsRef.current.length === 0) {
       toast.error("No tracking data to analyze. Please start tracking first.");
       return;
     }
