@@ -36,6 +36,18 @@ const Index = () => {
   // Store gaze points in a ref to avoid expensive state updates on every gaze detection
   // State is only updated when tracking stops for final display
   const gazePointsRef = useRef<GazeData[]>([]);
+  
+  // Periodically update gaze points count for display (every 500ms)
+  useEffect(() => {
+    if (!isTracking) return;
+    
+    const interval = setInterval(() => {
+      // Update state with current count for display
+      setGazePoints([...gazePointsRef.current]);
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, [isTracking]);
 
   // Load WebGazer.js
   useEffect(() => {
@@ -93,6 +105,26 @@ const Index = () => {
   const handleCalibrationComplete = () => {
     setIsCalibrated(true);
     setShowCalibration(false);
+
+    // Restore main tracking gaze listener after calibration
+    // Use setTimeout to ensure calibration modal cleanup completes first
+    setTimeout(() => {
+      if (window.webgazer) {
+        const trackingListener = (data: any, timestamp: number) => {
+          if (data && data.x != null && data.y != null && isTrackingRef.current) {
+            // Push to ref array (O(1) operation) instead of state update
+            gazePointsRef.current.push({
+              x: data.x,
+              y: data.y,
+              timestamp: Date.now(),
+            });
+          }
+        };
+        window.webgazer.setGazeListener(trackingListener);
+        console.log("Tracking gaze listener restored");
+      }
+    }, 100);
+
     toast.success("Calibration complete! You can now start tracking.");
   };
 
@@ -101,8 +133,30 @@ const Index = () => {
       toast.error("Please complete calibration first.");
       return;
     }
+    
+    // Ensure gaze listener is set up
+    if (window.webgazer) {
+      const trackingListener = (data: any, timestamp: number) => {
+        if (data && data.x != null && data.y != null && isTrackingRef.current) {
+          // Push to ref array (O(1) operation) instead of state update
+          gazePointsRef.current.push({
+            x: data.x,
+            y: data.y,
+            timestamp: Date.now(),
+          });
+        }
+      };
+      window.webgazer.setGazeListener(trackingListener);
+      console.log("Tracking gaze listener set up");
+    }
+    
     setIsTracking(true);
     isTrackingRef.current = true;
+    
+    // Clear previous gaze points when starting new tracking session
+    gazePointsRef.current = [];
+    setGazePoints([]);
+    
     toast.success("Eye tracking started!");
   };
 
@@ -111,7 +165,9 @@ const Index = () => {
     isTrackingRef.current = false;
     // Sync ref to state only when stopping (for final count display)
     setGazePoints([...gazePointsRef.current]);
-    toast.info(`Eye tracking paused. ${gazePointsRef.current.length} points recorded.`);
+    const count = gazePointsRef.current.length;
+    console.log(`Tracking stopped. ${count} points recorded.`);
+    toast.info(`Eye tracking paused. ${count} points recorded.`);
   };
 
   const handleRecalibrate = () => {
@@ -120,6 +176,7 @@ const Index = () => {
     // Clear gaze points when recalibrating
     gazePointsRef.current = [];
     setGazePoints([]);
+    setIsCalibrated(false);
     setShowCalibration(true);
     toast.info("Starting recalibration...");
   };
