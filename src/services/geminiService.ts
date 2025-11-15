@@ -41,6 +41,7 @@ export interface GazeDataExport {
     wordReadings: WordReadingData[];
     readingSequence: WordReadingEvent[];
     totalUniqueWords: number;
+    totalWordsInText: number;
   };
 }
 
@@ -84,7 +85,9 @@ class GeminiService {
       gazeDataExport.wordReadingData ?
         `
 WORD-LEVEL READING DATA:
-- Total unique words tracked: ${gazeDataExport.wordReadingData.totalUniqueWords}
+- Total unique word positions in text: ${gazeDataExport.wordReadingData.totalWordsInText}
+- Unique word positions that were gazed at: ${gazeDataExport.wordReadingData.wordReadings.length}
+- Coverage: ${Math.round((gazeDataExport.wordReadingData.wordReadings.length / gazeDataExport.wordReadingData.totalWordsInText) * 100)}%
 - Top 10 most read words:
 ${gazeDataExport.wordReadingData.wordReadings
   .slice(0, 10)
@@ -104,6 +107,8 @@ ${gazeDataExport.wordReadingData.readingSequence
 
     const analysisPrompt = `You are an eye-tracking data analyst. Analyze the provided gaze data strictly based on actual coordinates, timestamps, and word-level readings. Do not speculate or make assumptions beyond what the data shows.
 
+READER TASK: Reading for comprehension - The user was instructed to read the text naturally and understand the content.
+
 GAZE DATA SUMMARY:
 - Total gaze points: ${gazeDataExport.metadata.totalGazePoints}
 - Session duration: ${gazeDataExport.metadata.sessionDuration}ms
@@ -122,21 +127,29 @@ Analyze and provide ONLY the following, based strictly on the coordinate, timest
    - Was the user's gaze focused on specific regions/paragraphs of the text, or distributed across the entire text area?
    - Identify which vertical regions (top, middle, bottom) received most gaze points.
    - Did the user read sequentially (left-to-right, top-to-bottom) or in a scattered pattern?
+   - For comprehension reading, assess whether the reading pattern suggests active engagement with the content (e.g., pausing on key concepts).
 
 2. **Most Read Parts**:
    - Identify the top words/phrases that received the most gaze attention (use word-level data if available).
    - List the top 3-5 words or text sections by gaze point frequency and time spent.
    - Indicate which concepts or topics drew the most attention.
+   - For comprehension reading, note whether these frequently-gazed words are key concepts from the text.
 
 3. **Coverage & Time Analysis**:
    - Calculate what percentage of the text content was actually looked at (based on unique words read).
    - Report which parts of the text were skipped or ignored.
    - Calculate average time spent per word/region if possible from timestamp data.
    - Report total session duration and which sections took longer to read.
+   - For comprehension reading, assess whether coverage suggests thorough reading or selective reading patterns.
 
 4. **Re-reading Patterns**:
    - Identify words or sections that were read multiple times (frequency > 1).
-   - Suggest whether re-reading indicates confusion, emphasis, or interest.
+   - For comprehension reading, re-reading of key concepts (names, dates, important terms) typically indicates active comprehension or uncertainty about understanding.
+   - Suggest whether re-reading indicates confusion, emphasis, or interest in specific concepts.
+
+5. **Comprehension Indicators**:
+   - Based on gaze patterns and reading behavior, provide observations about the reader's likely comprehension strategy (e.g., careful analytical reading vs. skimming).
+   - Note any evidence of confusion (e.g., repetitive gazing without clear progression) or high engagement (e.g., extended fixations on complex sentences).
 
 Only report what the data shows. If a metric cannot be determined from the data, state that explicitly.`;
 

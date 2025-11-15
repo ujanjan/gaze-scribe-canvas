@@ -166,6 +166,7 @@ const Index = () => {
         wordReadings: wordReadingData.wordReadings,
         readingSequence: wordReadingData.readingSequence,
         totalUniqueWords: wordReadingData.totalUniqueWords,
+        totalWordsInText: wordReadingData.totalUniqueWords,
       },
     };
   };
