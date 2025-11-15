@@ -5,20 +5,16 @@ import { toast } from "sonner";
 import CalibrationModal from "@/components/CalibrationModal";
 import ControlPanel from "@/components/ControlPanel";
 import AnalysisResults from "@/components/AnalysisResults";
+import GazePointer from "@/components/GazePointer";
 import geminiService, { AnalysisResult, GazeDataExport } from "@/services/geminiService";
+import gazeCloudService, { GazeData as GazeCloudGazeData } from "@/services/gazeCloudService";
 import { Eye } from "lucide-react";
-
-// Type definitions for WebGazer
-declare global {
-  interface Window {
-    webgazer: any;
-  }
-}
 
 interface GazeData {
   x: number;
   y: number;
   timestamp: number;
+  calibrated: boolean;
 }
 
 const Index = () => {
@@ -26,64 +22,60 @@ const Index = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
   const [gazePoints, setGazePoints] = useState<GazeData[]>([]);
-  const [webgazerLoaded, setWebgazerLoaded] = useState(false);
-  const [showFaceOverlay, setShowFaceOverlay] = useState(true);
+  const [gazeCloudLoaded, setGazeCloudLoaded] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
 
-  // Load WebGazer.js
+  // Initialize GazeCloudAPI
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://webgazer.cs.brown.edu/webgazer.js";
-    script.async = true;
-    script.onload = () => {
-      console.log("WebGazer loaded successfully");
-      setWebgazerLoaded(true);
-      
-      // Initialize WebGazer
-      if (window.webgazer) {
-        window.webgazer
-          .setRegression("ridge")
-          .setTracker("TFFacemesh")
-          .setGazeListener((data: any, timestamp: number) => {
-            if (data && isTrackingRef.current) {
-              setGazePoints((prev) => [
-                ...prev,
-                { x: data.x, y: data.y, timestamp: Date.now() },
-              ]);
-            }
-          })
-          .saveDataAcrossSessions(true)
-          .begin();
-        
-        // Show the video preview for better debugging
-        window.webgazer.showVideoPreview(true);
-        window.webgazer.showPredictionPoints(true);
+    const initGazeCloud = async () => {
+      try {
+        await gazeCloudService.initialize();
+        console.log("GazeCloudAPI initialized successfully");
+        setGazeCloudLoaded(true);
+
+        // Setup gaze result callback
+        gazeCloudService.setOnGazeResult((data: GazeCloudGazeData) => {
+          if (isTrackingRef.current && data.calibrated) {
+            setGazePoints((prev) => [...prev, data]);
+          }
+        });
+
+        // Setup error handling
+        gazeCloudService.setOnError((error: string) => {
+          console.error("GazeCloud error:", error);
+          toast.error(`Eye tracking error: ${error}`);
+        });
+
+        gazeCloudService.setOnCameraDenied(() => {
+          toast.error("Camera access denied. Please allow camera access to use eye tracking.");
+        });
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : "Failed to load GazeCloudAPI";
+        console.error(errorMsg);
+        toast.error(errorMsg);
       }
     };
-    script.onerror = () => {
-      toast.error("Failed to load WebGazer.js. Please refresh the page.");
-    };
-    document.body.appendChild(script);
+
+    initGazeCloud();
 
     return () => {
-      if (window.webgazer) {
-        window.webgazer.end();
-      }
+      gazeCloudService.cleanup();
     };
   }, []);
 
   useEffect(() => {
-    if (webgazerLoaded && !isCalibrated) {
+    if (gazeCloudLoaded && !isCalibrated) {
       // Show calibration modal after a brief delay
       setTimeout(() => {
         setShowCalibration(true);
       }, 1000);
     }
-  }, [webgazerLoaded, isCalibrated]);
+  }, [gazeCloudLoaded, isCalibrated]);
 
   const handleCalibrationComplete = () => {
     setIsCalibrated(true);
@@ -114,14 +106,7 @@ const Index = () => {
     toast.info("Starting recalibration...");
   };
 
-  const handleToggleFaceOverlay = () => {
-    if (window.webgazer) {
-      const newState = !showFaceOverlay;
-      window.webgazer.showVideoPreview(newState);
-      setShowFaceOverlay(newState);
-      toast.info(newState ? "Face overlay shown" : "Face overlay hidden");
-    }
-  };
+
 
   const getExportData = (): GazeDataExport => {
     const textContainer = textContainerRef.current;
@@ -228,6 +213,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Gaze Pointer Overlay */}
+      <GazePointer isTracking={isTracking} />
+
       {/* Header */}
       <header className="border-b border-border bg-card shadow-sm">
         <div className="container mx-auto px-6 py-4">
@@ -237,11 +225,11 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                Eye-Tracking Analysis Tool
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                WebGazer.js Research Tool
-              </p>
+                   Eye-Tracking Analysis Tool
+                 </h1>
+                 <p className="text-sm text-muted-foreground">
+                   GazeCloud API Research Tool
+                 </p>
             </div>
           </div>
         </div>
@@ -287,8 +275,6 @@ const Index = () => {
               onRecalibrate={handleRecalibrate}
               onExportData={handleExportData}
               onAnalyzeWithAI={handleAnalyzeWithAI}
-              onToggleFaceOverlay={handleToggleFaceOverlay}
-              showFaceOverlay={showFaceOverlay}
               isAnalyzing={isAnalyzing}
             />
 
