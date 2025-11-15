@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import CalibrationModal from "@/components/CalibrationModal";
 import ControlPanel from "@/components/ControlPanel";
 import AnalysisResults from "@/components/AnalysisResults";
+import GazePointer from "@/components/GazePointer";
 import geminiService, { AnalysisResult, GazeDataExport } from "@/services/geminiService";
 import gazeCloudService, { GazeData as GazeCloudGazeData } from "@/services/gazeCloudService";
 import { Eye } from "lucide-react";
@@ -212,6 +213,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Gaze Pointer Overlay */}
+      <GazePointer isTracking={isTracking} />
+
       {/* Header */}
       <header className="border-b border-border bg-card shadow-sm">
         <div className="container mx-auto px-6 py-4">

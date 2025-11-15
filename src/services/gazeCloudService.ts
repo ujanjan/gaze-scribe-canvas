@@ -97,7 +97,7 @@ class GazeCloudService {
 
     // Handle gaze data results
     window.GazeCloudAPI.OnResult = (GazeData: GazeCloudData) => {
-      if (this.gazeResultCallback && this.isTracking) {
+      if (this.isTracking) {
         const data: GazeData = {
           x: GazeData.docX,
           y: GazeData.docY,
@@ -105,8 +105,15 @@ class GazeCloudService {
           calibrated: GazeData.state === 0, // Only valid if state is 0
         };
 
-        // Only record if calibrated or if we want uncalibrated data
-        if (data.calibrated) {
+        // Emit custom event for UI components (like GazePointer)
+        window.dispatchEvent(
+          new CustomEvent("gazeData", {
+            detail: { x: GazeData.docX, y: GazeData.docY, calibrated: data.calibrated },
+          })
+        );
+
+        // Only record if calibrated
+        if (data.calibrated && this.gazeResultCallback) {
           this.gazeResultCallback(data);
         }
       }
