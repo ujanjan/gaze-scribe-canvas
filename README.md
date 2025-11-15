@@ -4,7 +4,7 @@ A web application for eye-tracking research using WebGazer.js with AI-powered an
 
 ## Features
 
-- **WebGazer.js Integration**: Browser-based eye tracking using webcam
+- **GazeCloud API Integration**: Cloud-based real-time eye tracking using webcam with optimized calibration
 - **Calibration System**: 9-point calibration for improved accuracy
 - **AI-Powered Analysis**: Gemini API integration for intelligent gaze pattern analysis
 - **Data Export**: Export tracking data in LLM-friendly JSON format
@@ -244,7 +244,7 @@ Analyze this eye-tracking data and identify:
 2. **Position**: Sit at a comfortable distance from the screen (50-70cm)
 3. **Stability**: Keep your head relatively still during tracking
 4. **Calibration**: Recalibrate if the prediction dot seems inaccurate
-5. **Browser**: Use Chrome or Firefox for best WebGazer.js performance
+5. **Browser**: Use Chrome, Firefox, Edge, Safari 11+, or Opera 40+ for GazeCloud API support
 6. **Privacy**: All processing happens in your browser - no data is sent to servers
 
 ## Troubleshooting
@@ -281,7 +281,7 @@ Analyze this eye-tracking data and identify:
 ## Technical Details
 
 - **Framework**: React + TypeScript + Vite
-- **Eye Tracking**: WebGazer.js (TFFacemesh tracker, Ridge regression)
+- **Eye Tracking**: GazeCloud API (Real-time online eye-tracking, cloud-based processing)
 - **AI Analysis**: Google Gemini 2.0 Flash API
 - **UI Components**: shadcn/ui with Tailwind CSS
 - **State Management**: React Hooks + local state
@@ -291,7 +291,7 @@ Analyze this eye-tracking data and identify:
 - All eye tracking happens locally in your browser
 - No gaze data is sent to external servers (unless you use AI analysis)
 - When using AI Analysis: gaze coordinate data is sent to Google's Gemini API
-- WebGazer.js may store calibration data in browser localStorage
+- GazeCloud API stores calibration data on their servers for your domain (registered at api.gazerecorder.com)
 - Exported data is saved only to your local machine
 - Review [Google's privacy policy](https://policies.google.com/privacy) for AI analysis data handling
 
@@ -305,13 +305,13 @@ Analyze this eye-tracking data and identify:
 
 ## License
 
-This project uses WebGazer.js which is licensed under GPL-3.0. See the [WebGazer.js repository](https://github.com/brownhci/WebGazer) for details.
+This project uses GazeCloud API which is licensed under proprietary terms. See the [GazeCloud website](https://gazerecorder.com/gazecloudapi/) for details.
 
 ## Support
 
 For issues or questions:
 1. Check the troubleshooting section above
-2. Review WebGazer.js documentation
+2. Register your domain at https://api.gazerecorder.com/register/
 3. Check browser console for error messages
 4. For AI analysis issues, see the "Analyze with AI" troubleshooting section
 
@@ -327,11 +327,11 @@ For issues or questions:
 - ✂️ Copy individual analysis sections
 
 ### v1.0.0 - Initial Release
-- Basic eye tracking with WebGazer.js
+- Eye tracking with GazeCloud API (requires domain registration)
 - Calibration system
 - JSON data export
 - Web-based UI with Tailwind CSS
 
 ---
 
-Built with [Lovable](https://lovable.dev) | Powered by [WebGazer.js](https://webgazer.cs.brown.edu/) | AI by [Google Gemini](https://ai.google.dev)
+Built with [Lovable](https://lovable.dev) | Powered by [GazeCloud API](https://gazerecorder.com/gazecloudapi/) | AI by [Google Gemini](https://ai.google.dev)
