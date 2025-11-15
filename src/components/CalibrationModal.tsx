@@ -23,6 +23,7 @@ const CalibrationModal = ({ isOpen, onComplete, onClose }: CalibrationModalProps
       gazeCloudService.setOnCalibrationComplete(() => {
         console.log("GazeCloud calibration completed");
         setIsCalibrating(false);
+        // Keep tracking running after calibration so user can start sessions without recalibrating
         setTimeout(() => {
           onComplete();
         }, 500);

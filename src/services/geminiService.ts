@@ -3,6 +3,22 @@
  * Requires VITE_GEMINI_API_KEY environment variable
  */
 
+export interface WordReadingData {
+  word: string;
+  wordIndex: number;
+  gazeTotalTime: number;
+  gazePointCount: number;
+  firstGazeTime: number;
+  lastGazeTime: number;
+  frequency: number;
+}
+
+export interface WordReadingEvent {
+  word: string;
+  wordIndex: number;
+  timestamp: number;
+}
+
 export interface GazeDataExport {
   metadata: {
     sessionDuration: number;
@@ -21,6 +37,11 @@ export interface GazeDataExport {
     y: number;
     timestamp: number;
   }>;
+  wordReadingData?: {
+    wordReadings: WordReadingData[];
+    readingSequence: WordReadingEvent[];
+    totalUniqueWords: number;
+  };
 }
 
 export interface AnalysisResult {
@@ -59,7 +80,29 @@ class GeminiService {
     }
 
     // Create a detailed prompt for analysis
-    const analysisPrompt = `You are an eye-tracking data analyst. Analyze the provided gaze data strictly based on actual coordinates and timestamps. Do not speculate or make assumptions beyond what the data shows.
+    const wordReadingSection =
+      gazeDataExport.wordReadingData ?
+        `
+WORD-LEVEL READING DATA:
+- Total unique words tracked: ${gazeDataExport.wordReadingData.totalUniqueWords}
+- Top 10 most read words:
+${gazeDataExport.wordReadingData.wordReadings
+  .slice(0, 10)
+  .map(
+    (w, i) =>
+      `  ${i + 1}. "${w.word}" - ${w.gazePointCount} gaze points, ${w.gazeTotalTime}ms, read ${w.frequency} time(s)`
+  )
+  .join("\n")}
+
+- Reading sequence (order of unique words first read):
+${gazeDataExport.wordReadingData.readingSequence
+  .slice(0, 20)
+  .map((e) => `"${e.word}"`)
+  .join(" → ")}${gazeDataExport.wordReadingData.readingSequence.length > 20 ? "..." : ""}
+`
+      : "";
+
+    const analysisPrompt = `You are an eye-tracking data analyst. Analyze the provided gaze data strictly based on actual coordinates, timestamps, and word-level readings. Do not speculate or make assumptions beyond what the data shows.
 
 GAZE DATA SUMMARY:
 - Total gaze points: ${gazeDataExport.metadata.totalGazePoints}
@@ -68,10 +111,12 @@ GAZE DATA SUMMARY:
 
 ${readableText ? `TEXT CONTENT:\n${readableText}\n\n` : ""}
 
-RAW GAZE DATA (all ${gazeDataExport.rawGazeData.length} points):
-${JSON.stringify(gazeDataExport.rawGazeData, null, 2)}
+${wordReadingSection}
 
-Analyze and provide ONLY the following, based strictly on the coordinate and timestamp data:
+RAW GAZE DATA (all ${gazeDataExport.rawGazeData.length} points):
+${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 50), null, 2)}${gazeDataExport.rawGazeData.length > 50 ? `\n... and ${gazeDataExport.rawGazeData.length - 50} more points` : ""}
+
+Analyze and provide ONLY the following, based strictly on the coordinate, timestamp, and word-reading data:
 
 1. **Overall Reading Pattern**: 
    - Was the user's gaze focused on specific regions/paragraphs of the text, or distributed across the entire text area?
@@ -79,15 +124,19 @@ Analyze and provide ONLY the following, based strictly on the coordinate and tim
    - Did the user read sequentially (left-to-right, top-to-bottom) or in a scattered pattern?
 
 2. **Most Read Parts**:
-   - Map gaze coordinates to the text content and identify which specific words, phrases, or paragraphs received the most gaze points.
-   - List the top 3-5 regions or text sections by gaze point frequency.
-   - State the approximate number of gaze points in each region.
+   - Identify the top words/phrases that received the most gaze attention (use word-level data if available).
+   - List the top 3-5 words or text sections by gaze point frequency and time spent.
+   - Indicate which concepts or topics drew the most attention.
 
 3. **Coverage & Time Analysis**:
-   - Calculate what percentage of the text area was covered by gaze points (based on coordinate distribution).
-   - Estimate what percentage of the text content was actually looked at.
-   - Calculate average time spent per region if possible from timestamp data.
+   - Calculate what percentage of the text content was actually looked at (based on unique words read).
+   - Report which parts of the text were skipped or ignored.
+   - Calculate average time spent per word/region if possible from timestamp data.
    - Report total session duration and which sections took longer to read.
+
+4. **Re-reading Patterns**:
+   - Identify words or sections that were read multiple times (frequency > 1).
+   - Suggest whether re-reading indicates confusion, emphasis, or interest.
 
 Only report what the data shows. If a metric cannot be determined from the data, state that explicitly.`;
 
