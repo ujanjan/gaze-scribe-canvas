@@ -121,37 +121,21 @@ ${wordReadingSection}
 RAW GAZE DATA (all ${gazeDataExport.rawGazeData.length} points):
 ${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 50), null, 2)}${gazeDataExport.rawGazeData.length > 50 ? `\n... and ${gazeDataExport.rawGazeData.length - 50} more points` : ""}
 
-Analyze and provide ONLY the following, based strictly on the coordinate, timestamp, and word-reading data:
+Based on the eye-tracking data, provide a simple, conversational analysis covering:
 
-1. **Overall Reading Pattern**: 
-   - Was the user's gaze focused on specific regions/paragraphs of the text, or distributed across the entire text area?
-   - Identify which vertical regions (top, middle, bottom) received most gaze points.
-   - Did the user read sequentially (left-to-right, top-to-bottom) or in a scattered pattern?
-   - For comprehension reading, assess whether the reading pattern suggests active engagement with the content (e.g., pausing on key concepts).
+1. **What Interested the Reader Most**:
+   - Which words, phrases, or concepts did they spend the most time looking at?
+   - What topics or ideas seem to have captured their attention?
 
-2. **Most Read Parts**:
-   - Identify the top words/phrases that received the most gaze attention (use word-level data if available).
-   - List the top 3-5 words or text sections by gaze point frequency and time spent.
-   - Indicate which concepts or topics drew the most attention.
-   - For comprehension reading, note whether these frequently-gazed words are key concepts from the text.
+2. **Areas of Focus**:
+   - Which sections of the text (top, middle, bottom, or specific paragraphs) did they focus on the most?
+   - Did they read everything, or did they skip certain parts?
 
-3. **Coverage & Time Analysis**:
-   - Calculate what percentage of the text content was actually looked at (based on unique words read).
-   - Report which parts of the text were skipped or ignored.
-   - Calculate average time spent per word/region if possible from timestamp data.
-   - Report total session duration and which sections took longer to read.
-   - For comprehension reading, assess whether coverage suggests thorough reading or selective reading patterns.
+3. **How They Read**:
+   - Did they read the text in order, or did their eyes jump around?
+   - Do they seem to have re-read any important words or concepts?
 
-4. **Re-reading Patterns**:
-   - Identify words or sections that were read multiple times (frequency > 1).
-   - For comprehension reading, re-reading of key concepts (names, dates, important terms) typically indicates active comprehension or uncertainty about understanding.
-   - Suggest whether re-reading indicates confusion, emphasis, or interest in specific concepts.
-
-5. **Comprehension Indicators**:
-   - Based on gaze patterns and reading behavior, provide observations about the reader's likely comprehension strategy (e.g., careful analytical reading vs. skimming).
-   - Note any evidence of confusion (e.g., repetitive gazing without clear progression) or high engagement (e.g., extended fixations on complex sentences).
-
-Only report what the data shows. If a metric cannot be determined from the data, state that explicitly.`;
+Keep the analysis natural and easy to understand. Focus on insights about what the reader found interesting rather than technical metrics.`;
 
     try {
       const requestBody = {
