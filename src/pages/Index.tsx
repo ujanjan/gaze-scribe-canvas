@@ -6,8 +6,10 @@ import CalibrationModal from "@/components/CalibrationModal";
 import ControlPanel from "@/components/ControlPanel";
 import AnalysisResults from "@/components/AnalysisResults";
 import GazePointer from "@/components/GazePointer";
+import TextDisplay from "@/components/TextDisplay";
 import geminiService, { AnalysisResult, GazeDataExport } from "@/services/geminiService";
 import gazeCloudService, { GazeData as GazeCloudGazeData } from "@/services/gazeCloudService";
+import wordTrackingService, { WordBounds } from "@/services/wordTrackingService";
 import { Eye } from "lucide-react";
 
 interface GazeData {
@@ -26,6 +28,8 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [wordBounds, setWordBounds] = useState<WordBounds[]>([]);
+  const [highlightedWordIndex, setHighlightedWordIndex] = useState<number>(-1);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const isTrackingRef = useRef(false);
 
@@ -41,6 +45,19 @@ const Index = () => {
         gazeCloudService.setOnGazeResult((data: GazeCloudGazeData) => {
           if (isTrackingRef.current && data.calibrated) {
             setGazePoints((prev) => [...prev, data]);
+
+            // Track which word is being gazed at
+            const gazeWordBounds = wordTrackingService.findWordAtGazePosition(
+              data.x,
+              data.y
+            );
+
+            if (gazeWordBounds) {
+              setHighlightedWordIndex(gazeWordBounds.index);
+              wordTrackingService.trackGazeOnWord(gazeWordBounds, data.timestamp);
+            } else {
+              setHighlightedWordIndex(-1);
+            }
           }
         });
 
@@ -90,12 +107,15 @@ const Index = () => {
     }
     setIsTracking(true);
     isTrackingRef.current = true;
+    wordTrackingService.resetReadingData();
+    setHighlightedWordIndex(-1);
     toast.success("Eye tracking started!");
   };
 
   const handleStopTracking = () => {
     setIsTracking(false);
     isTrackingRef.current = false;
+    setHighlightedWordIndex(-1);
     toast.info("Eye tracking paused");
   };
 
@@ -117,6 +137,13 @@ const Index = () => {
       height: 0,
     };
 
+    // Calculate time metrics for word reading data
+    if (gazePoints.length > 0) {
+      wordTrackingService.calculateTimeMetrics(gazePoints);
+    }
+
+    const wordReadingData = wordTrackingService.exportWordReadingData();
+
     return {
       metadata: {
         sessionDuration:
@@ -135,7 +162,27 @@ const Index = () => {
         },
       },
       rawGazeData: gazePoints,
+      wordReadingData: {
+        wordReadings: wordReadingData.wordReadings,
+        readingSequence: wordReadingData.readingSequence,
+        totalUniqueWords: wordReadingData.totalUniqueWords,
+        totalWordsInText: wordReadingData.totalUniqueWords,
+      },
     };
+  };
+
+  const downloadJSON = (data: object, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleExportData = () => {
@@ -146,36 +193,47 @@ const Index = () => {
 
     const exportData = getExportData();
 
+    // Export full data with coordinates
     const dataWithInstructions = {
       ...exportData,
       instructions: {
         description: "Eye-tracking data export",
-        format: "JSON with raw gaze coordinates and metadata",
+        format: "JSON with raw gaze coordinates, metadata, and word-level readings",
         usage: "This data can be analyzed by LLMs to understand reading patterns, attention distribution, and user engagement with the text content.",
         fields: {
           metadata:
             "Session information including duration, calibration status, and text container positioning",
           rawGazeData:
             "Array of gaze points with x, y coordinates and timestamps in milliseconds",
+          wordReadingData:
+            "Word-level reading metrics including time spent per word, frequency, and reading sequence",
           textContainerBounds:
             "Position and dimensions of the text content area for mapping gaze points to text regions",
         },
       },
     };
 
-    const blob = new Blob([JSON.stringify(dataWithInstructions, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `eye-tracking-data-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadJSON(dataWithInstructions, `eye-tracking-data-${Date.now()}.json`);
 
-    toast.success("Data exported successfully!");
+    // Also export word reading data separately for easy reference
+    if (exportData.wordReadingData) {
+      const wordReadingExport = {
+        metadata: {
+          exportTimestamp: new Date().toISOString(),
+          sessionDuration: exportData.metadata.sessionDuration,
+          totalGazePoints: exportData.metadata.totalGazePoints,
+        },
+        ...exportData.wordReadingData,
+        description: "Word-level reading analytics from gaze tracking session",
+      };
+
+      downloadJSON(
+        wordReadingExport,
+        `word-reading-data-${Date.now()}.json`
+      );
+    }
+
+    toast.success("Data exported successfully! (2 files: coordinates + words)");
   };
 
   const handleAnalyzeWithAI = async () => {
@@ -241,25 +299,31 @@ const Index = () => {
           {/* Left Column - 70% - Text Content */}
           <div className="w-[70%]">
             <Card className="relative overflow-hidden bg-card p-8">
-              <div className="w-full" ref={textContainerRef}>
-                <h2 className="mb-6 text-3xl font-bold text-foreground">
-                  The History of KTH Royal Institute of Technology
-                </h2>
+              <TextDisplay
+                containerRef={textContainerRef}
+                highlightedWordIndex={highlightedWordIndex}
+                onWordsExtracted={setWordBounds}
+              >
+                <div className="w-full">
+                  <h2 className="mb-6 text-3xl font-bold text-foreground">
+                    The History of KTH Royal Institute of Technology
+                  </h2>
 
-                <div className="space-y-6 text-lg leading-relaxed text-foreground">
-                  <p>
-                    KTH Royal Institute of Technology, founded in 1827 as the Technological Institute, is Sweden's largest and oldest technical university. Established to meet the growing demand for skilled engineers during Sweden's industrial revolution, the institution received royal status in 1877, becoming Kungliga Tekniska Högskolan. Throughout its nearly two-century history, KTH has remained at the forefront of technical education and innovation in Scandinavia.
-                  </p>
+                  <div className="space-y-6 text-lg leading-relaxed text-foreground">
+                    <p>
+                      KTH Royal Institute of Technology, founded in 1827 as the Technological Institute, is Sweden's largest and oldest technical university. Established to meet the growing demand for skilled engineers during Sweden's industrial revolution, the institution received royal status in 1877, becoming Kungliga Tekniska Högskolan. Throughout its nearly two-century history, KTH has remained at the forefront of technical education and innovation in Scandinavia.
+                    </p>
 
-                  <p>
-                    Located in Stockholm, KTH's campus combines historic architecture with modern facilities across multiple locations. Today, the university educates approximately 13,000 undergraduate and 1,700 postgraduate students with a staff of around 3,500. KTH offers comprehensive programs in engineering, natural sciences, architecture, industrial management, and urban planning, while maintaining strong partnerships with leading universities worldwide and close collaboration with Swedish and international industries—a defining characteristic that ensures research and education remain relevant to real-world challenges.
-                  </p>
+                    <p>
+                      Located in Stockholm, KTH's campus combines historic architecture with modern facilities across multiple locations. Today, the university educates approximately 13,000 undergraduate and 1,700 postgraduate students with a staff of around 3,500. KTH offers comprehensive programs in engineering, natural sciences, architecture, industrial management, and urban planning, while maintaining strong partnerships with leading universities worldwide and close collaboration with Swedish and international industries—a defining characteristic that ensures research and education remain relevant to real-world challenges.
+                    </p>
 
-                  <p>
-                    In recent decades, KTH has embraced digital transformation and sustainability as core themes, launching initiatives focused on climate change, renewable energy, and sustainable development. The university continues to evolve and adapt its programs to meet the demands of a rapidly changing technological landscape while maintaining its commitment to excellence. As Sweden and the world face complex challenges in digitalization, urbanization, and environmental sustainability, KTH remains dedicated to developing the knowledge and solutions needed for a better future.
-                  </p>
+                    <p>
+                      In recent decades, KTH has embraced digital transformation and sustainability as core themes, launching initiatives focused on climate change, renewable energy, and sustainable development. The university continues to evolve and adapt its programs to meet the demands of a rapidly changing technological landscape while maintaining its commitment to excellence. As Sweden and the world face complex challenges in digitalization, urbanization, and environmental sustainability, KTH remains dedicated to developing the knowledge and solutions needed for a better future.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              </TextDisplay>
             </Card>
           </div>
 

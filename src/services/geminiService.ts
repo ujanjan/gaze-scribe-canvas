@@ -3,6 +3,22 @@
  * Requires VITE_GEMINI_API_KEY environment variable
  */
 
+export interface WordReadingData {
+  word: string;
+  wordIndex: number;
+  gazeTotalTime: number;
+  gazePointCount: number;
+  firstGazeTime: number;
+  lastGazeTime: number;
+  frequency: number;
+}
+
+export interface WordReadingEvent {
+  word: string;
+  wordIndex: number;
+  timestamp: number;
+}
+
 export interface GazeDataExport {
   metadata: {
     sessionDuration: number;
@@ -21,6 +37,12 @@ export interface GazeDataExport {
     y: number;
     timestamp: number;
   }>;
+  wordReadingData?: {
+    wordReadings: WordReadingData[];
+    readingSequence: WordReadingEvent[];
+    totalUniqueWords: number;
+    totalWordsInText: number;
+  };
 }
 
 export interface AnalysisResult {
@@ -59,7 +81,33 @@ class GeminiService {
     }
 
     // Create a detailed prompt for analysis
-    const analysisPrompt = `You are an eye-tracking data analyst. Analyze the provided gaze data strictly based on actual coordinates and timestamps. Do not speculate or make assumptions beyond what the data shows.
+    const wordReadingSection =
+      gazeDataExport.wordReadingData ?
+        `
+WORD-LEVEL READING DATA:
+- Total unique word positions in text: ${gazeDataExport.wordReadingData.totalWordsInText}
+- Unique word positions that were gazed at: ${gazeDataExport.wordReadingData.wordReadings.length}
+- Coverage: ${Math.round((gazeDataExport.wordReadingData.wordReadings.length / gazeDataExport.wordReadingData.totalWordsInText) * 100)}%
+- Top 10 most read words:
+${gazeDataExport.wordReadingData.wordReadings
+  .slice(0, 10)
+  .map(
+    (w, i) =>
+      `  ${i + 1}. "${w.word}" - ${w.gazePointCount} gaze points, ${w.gazeTotalTime}ms, read ${w.frequency} time(s)`
+  )
+  .join("\n")}
+
+- Reading sequence (order of unique words first read):
+${gazeDataExport.wordReadingData.readingSequence
+  .slice(0, 20)
+  .map((e) => `"${e.word}"`)
+  .join(" → ")}${gazeDataExport.wordReadingData.readingSequence.length > 20 ? "..." : ""}
+`
+      : "";
+
+    const analysisPrompt = `You are an eye-tracking data analyst. Analyze the provided gaze data strictly based on actual coordinates, timestamps, and word-level readings. Do not speculate or make assumptions beyond what the data shows.
+
+READER TASK: Reading for comprehension - The user was instructed to read the text naturally and understand the content.
 
 GAZE DATA SUMMARY:
 - Total gaze points: ${gazeDataExport.metadata.totalGazePoints}
@@ -68,28 +116,26 @@ GAZE DATA SUMMARY:
 
 ${readableText ? `TEXT CONTENT:\n${readableText}\n\n` : ""}
 
-RAW GAZE DATA (first 100 points):
-${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 100), null, 2)}
+${wordReadingSection}
 
-Analyze and provide ONLY the following, based strictly on the coordinate and timestamp data:
+RAW GAZE DATA (all ${gazeDataExport.rawGazeData.length} points):
+${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 50), null, 2)}${gazeDataExport.rawGazeData.length > 50 ? `\n... and ${gazeDataExport.rawGazeData.length - 50} more points` : ""}
 
-1. **Overall Reading Pattern**: 
-   - Was the user's gaze focused on specific regions/paragraphs of the text, or distributed across the entire text area?
-   - Identify which vertical regions (top, middle, bottom) received most gaze points.
-   - Did the user read sequentially (left-to-right, top-to-bottom) or in a scattered pattern?
+Based on the eye-tracking data, provide a simple, conversational analysis covering:
 
-2. **Most Read Parts**:
-   - Map gaze coordinates to the text content and identify which specific words, phrases, or paragraphs received the most gaze points.
-   - List the top 3-5 regions or text sections by gaze point frequency.
-   - State the approximate number of gaze points in each region.
+1. **What Interested the Reader Most**:
+   - Which words, phrases, or concepts did they spend the most time looking at?
+   - What topics or ideas seem to have captured their attention?
 
-3. **Coverage & Time Analysis**:
-   - Calculate what percentage of the text area was covered by gaze points (based on coordinate distribution).
-   - Estimate what percentage of the text content was actually looked at.
-   - Calculate average time spent per region if possible from timestamp data.
-   - Report total session duration and which sections took longer to read.
+2. **Areas of Focus**:
+   - Which sections of the text (top, middle, bottom, or specific paragraphs) did they focus on the most?
+   - Did they read everything, or did they skip certain parts?
 
-Only report what the data shows. If a metric cannot be determined from the data, state that explicitly.`;
+3. **How They Read**:
+   - Did they read the text in order, or did their eyes jump around?
+   - Do they seem to have re-read any important words or concepts?
+
+Keep the analysis natural and easy to understand. Focus on insights about what the reader found interesting rather than technical metrics.`;
 
     try {
       const requestBody = {
