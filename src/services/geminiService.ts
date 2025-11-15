@@ -147,40 +147,41 @@ Format your response clearly with these sections separated by line breaks.`;
   }
 
   /**
-   * Parses the Gemini API response into structured sections
-   */
+    * Parses the Gemini API response into structured sections
+    */
   private parseAnalysisResponse(text: string): AnalysisResult {
     const sections = {
-      summary: this.extractSection(text, "summary", ""),
-      readingPattern: this.extractSection(text, "reading pattern", ""),
-      attentionAreas: this.extractSection(text, "attention areas", ""),
-      engagementMetrics: this.extractSection(text, "engagement metrics", ""),
-      recommendations: this.extractSection(text, "recommendations", ""),
+      readingPattern: this.extractSection(text, "Reading Pattern", ""),
+      attentionAreas: this.extractSection(text, "Attention Areas", ""),
+      engagementMetrics: this.extractSection(text, "Engagement Metrics", ""),
+      recommendations: this.extractSection(text, "Recommendations", ""),
+      summary: this.extractSection(text, "Key Insights", ""),
       rawAnalysis: text,
     };
 
-    // If sections weren't found with the regex, just return the full text as summary
-    if (!sections.summary && !sections.readingPattern) {
-      sections.summary = text;
-    }
+    // If sections weren't found, log and return what we have
+    console.log("Parsed sections:", sections);
 
     return sections;
   }
 
   /**
-   * Helper to extract a section from the response text
-   */
+    * Helper to extract a section from the response text
+    */
   private extractSection(
     text: string,
     sectionName: string,
     defaultValue: string
   ): string {
+    // Match section headers like "## Reading Pattern:" or "**Reading Pattern**:" or just "Reading Pattern"
     const regex = new RegExp(
-      `(?:^|\\n)\\*?\\*?${sectionName}[:\\*]*\\*?\\*?\\n?([^]*?)(?=\\n\\*?\\*?[A-Z]|$)`,
+      `(?:\\*\\*)?${sectionName}(?:\\*\\*)?[:\\s]*\n([^]*?)(?=\n(?:\\*\\*)?[A-Z][a-z]+|$)`,
       "i"
     );
     const match = text.match(regex);
-    return match ? match[1].trim() : defaultValue;
+    const result = match ? match[1].trim() : defaultValue;
+    console.log(`Extracting "${sectionName}":`, result ? "Found" : "Not found");
+    return result;
   }
 }
 

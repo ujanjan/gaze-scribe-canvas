@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Copy, CheckCircle2, Download } from "lucide-react";
+import { Loader2, Copy, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { AnalysisResult } from "@/services/geminiService";
 
@@ -21,41 +21,6 @@ const AnalysisResults = ({
     navigator.clipboard.writeText(text);
     setCopiedSection(section);
     setTimeout(() => setCopiedSection(null), 2000);
-  };
-
-  const downloadAnalysis = () => {
-    if (!analysisResult) return;
-
-    const analysisText = `
-EYE-TRACKING GAZE ANALYSIS REPORT
-==================================
-Generated: ${new Date().toLocaleString()}
-
-READING PATTERN
-${analysisResult.readingPattern || "No data"}
-
-ATTENTION AREAS
-${analysisResult.attentionAreas || "No data"}
-
-ENGAGEMENT METRICS
-${analysisResult.engagementMetrics || "No data"}
-
-RECOMMENDATIONS
-${analysisResult.recommendations || "No data"}
-
-FULL ANALYSIS
-${analysisResult.rawAnalysis || "No data"}
-    `.trim();
-
-    const blob = new Blob([analysisText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `gaze-analysis-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   if (!analysisResult && !isLoading && !error) {
@@ -86,70 +51,15 @@ ${analysisResult.rawAnalysis || "No data"}
 
       {analysisResult && !isLoading && (
         <div className="space-y-4">
-          {/* Reading Pattern */}
-          {analysisResult.readingPattern && (
-            <AnalysisSection
-              title="Reading Pattern"
-              content={analysisResult.readingPattern}
-              onCopy={() =>
-                copyToClipboard(analysisResult.readingPattern, "readingPattern")
-              }
-              isCopied={copiedSection === "readingPattern"}
-            />
-          )}
-
-          {/* Attention Areas */}
-          {analysisResult.attentionAreas && (
-            <AnalysisSection
-              title="Attention Areas"
-              content={analysisResult.attentionAreas}
-              onCopy={() =>
-                copyToClipboard(analysisResult.attentionAreas, "attentionAreas")
-              }
-              isCopied={copiedSection === "attentionAreas"}
-            />
-          )}
-
-          {/* Engagement Metrics */}
-          {analysisResult.engagementMetrics && (
-            <AnalysisSection
-              title="Engagement"
-              content={analysisResult.engagementMetrics}
-              onCopy={() =>
-                copyToClipboard(
-                  analysisResult.engagementMetrics,
-                  "engagementMetrics"
-                )
-              }
-              isCopied={copiedSection === "engagementMetrics"}
-            />
-          )}
-
-          {/* Recommendations */}
-          {analysisResult.recommendations && (
-            <AnalysisSection
-              title="Recommendations"
-              content={analysisResult.recommendations}
-              onCopy={() =>
-                copyToClipboard(
-                  analysisResult.recommendations,
-                  "recommendations"
-                )
-              }
-              isCopied={copiedSection === "recommendations"}
-            />
-          )}
-
-          {/* Download Button */}
-          <Button
-            onClick={downloadAnalysis}
-            variant="outline"
-            className="w-full"
-            size="sm"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download Report
-          </Button>
+          {/* Full Analysis */}
+          <AnalysisSection
+            title="Analysis"
+            content={analysisResult.rawAnalysis || "No analysis available"}
+            onCopy={() =>
+              copyToClipboard(analysisResult.rawAnalysis || "", "rawAnalysis")
+            }
+            isCopied={copiedSection === "rawAnalysis"}
+          />
         </div>
       )}
     </Card>
