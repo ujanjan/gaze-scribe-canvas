@@ -68,8 +68,8 @@ GAZE DATA SUMMARY:
 
 ${readableText ? `TEXT CONTENT:\n${readableText}\n\n` : ""}
 
-RAW GAZE DATA (first 100 points):
-${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 100), null, 2)}
+RAW GAZE DATA (all ${gazeDataExport.rawGazeData.length} points):
+${JSON.stringify(gazeDataExport.rawGazeData, null, 2)}
 
 Analyze and provide ONLY the following, based strictly on the coordinate and timestamp data:
 
