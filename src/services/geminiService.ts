@@ -59,31 +59,37 @@ class GeminiService {
     }
 
     // Create a detailed prompt for analysis
-    const analysisPrompt = `You are an expert in eye-tracking analysis and user behavior research. 
-
-I am providing you with:
-1. JSON data containing raw gaze coordinates and timing information
-2. The text content the user was reading (if provided)
+    const analysisPrompt = `You are an eye-tracking data analyst. Analyze the provided gaze data strictly based on actual coordinates and timestamps. Do not speculate or make assumptions beyond what the data shows.
 
 GAZE DATA SUMMARY:
-- Total gaze points collected: ${gazeDataExport.metadata.totalGazePoints}
+- Total gaze points: ${gazeDataExport.metadata.totalGazePoints}
 - Session duration: ${gazeDataExport.metadata.sessionDuration}ms
-- Text area bounds: Left: ${gazeDataExport.metadata.textContainerBounds.x}px, Top: ${gazeDataExport.metadata.textContainerBounds.y}px, Width: ${gazeDataExport.metadata.textContainerBounds.width}px, Height: ${gazeDataExport.metadata.textContainerBounds.height}px
+- Text container area: X: ${gazeDataExport.metadata.textContainerBounds.x}px, Y: ${gazeDataExport.metadata.textContainerBounds.y}px, Width: ${gazeDataExport.metadata.textContainerBounds.width}px, Height: ${gazeDataExport.metadata.textContainerBounds.height}px
 
 ${readableText ? `TEXT CONTENT:\n${readableText}\n\n` : ""}
 
-RAW GAZE DATA (first 50 points for reference):
-${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 50), null, 2)}
+RAW GAZE DATA (first 100 points):
+${JSON.stringify(gazeDataExport.rawGazeData.slice(0, 100), null, 2)}
 
-Please analyze the gaze data and provide a comprehensive analysis in the following sections:
+Analyze and provide ONLY the following, based strictly on the coordinate and timestamp data:
 
-1. **Reading Pattern**: Describe the user's reading pattern based on the coordinate data (left-to-right, top-to-bottom, scanning, focused, etc.). Consider the sequence and density of gaze points.
-2. **Attention Areas**: Identify which areas or regions received the most attention based on gaze point density and distribution (top, middle, bottom, left, right, specific sections). Calculate which regions have the highest concentration of gaze points.
-3. **Engagement Metrics**: Estimate the user's engagement level based on the gaze distribution, point density, and reading speed (calculated from timestamps).
-4. **Key Insights**: What can you infer about comprehension, interest, or potential challenges based on the gaze pattern data?
-5. **Recommendations**: Suggestions for content improvement or layout optimization based on the gaze pattern analysis
+1. **Overall Reading Pattern**: 
+   - Was the user's gaze focused on specific regions/paragraphs of the text, or distributed across the entire text area?
+   - Identify which vertical regions (top, middle, bottom) received most gaze points.
+   - Did the user read sequentially (left-to-right, top-to-bottom) or in a scattered pattern?
 
-Format your response clearly with these sections separated by line breaks.`;
+2. **Most Read Parts**:
+   - Map gaze coordinates to the text content and identify which specific words, phrases, or paragraphs received the most gaze points.
+   - List the top 3-5 regions or text sections by gaze point frequency.
+   - State the approximate number of gaze points in each region.
+
+3. **Coverage & Time Analysis**:
+   - Calculate what percentage of the text area was covered by gaze points (based on coordinate distribution).
+   - Estimate what percentage of the text content was actually looked at.
+   - Calculate average time spent per region if possible from timestamp data.
+   - Report total session duration and which sections took longer to read.
+
+Only report what the data shows. If a metric cannot be determined from the data, state that explicitly.`;
 
     try {
       const requestBody = {
